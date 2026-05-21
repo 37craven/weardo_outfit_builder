@@ -9,10 +9,13 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  firebase_core: ^2.24.2
-  firebase_auth: ^4.16.0
-  cloud_firestore: ^4.14.0
-  firebase_storage: ^11.6.0
+    # Firebase – latest versions (web compatible)
+  firebase_core: ^3.12.0
+  firebase_auth: ^5.5.0
+  cloud_firestore: ^5.6.0
+  firebase_storage: ^12.4.0
+
+    # Other packages
   provider: ^6.1.1
   image_picker: ^1.0.5
   uuid: ^4.2.1

@@ -1,21 +1,30 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:weardo/providers/auth_provider.dart';
-import 'package:weardo/providers/clothes_provider.dart';
-import 'package:weardo/providers/favorite_provider.dart';
-import 'package:weardo/screens/login_screen.dart';
-import 'package:weardo/screens/home_screen.dart';
+import 'package:weardo_outfit_builder/providers/auth_provider.dart';
+import 'package:weardo_outfit_builder/providers/clothes_provider.dart';
+import 'package:weardo_outfit_builder/providers/favorite_provider.dart';
+import 'package:weardo_outfit_builder/screens/login_screen.dart';
+import 'package:weardo_outfit_builder/screens/register_screen.dart';
+import 'package:weardo_outfit_builder/screens/home_screen.dart';
+import 'package:weardo_outfit_builder/screens/generate_outfit_screen.dart';
+import 'package:weardo_outfit_builder/screens/clothes_screen.dart';
+import 'package:weardo_outfit_builder/screens/add_clothes_screen.dart';
+import 'package:weardo_outfit_builder/screens/profile_screen.dart';
 import 'package:go_router/go_router.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  runApp(const WeardoApp());
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  runApp(WeardoApp());
 }
 
 class WeardoApp extends StatelessWidget {
-  const WeardoApp({super.key});
+  WeardoApp({super.key});
 
   @override
   Widget build(BuildContext context) {
