@@ -1,4 +1,5 @@
-import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -9,8 +10,6 @@ import 'package:weardo_outfit_builder/models/clothing_item.dart';
 import 'package:provider/provider.dart';
 import 'package:weardo_outfit_builder/providers/clothes_provider.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/foundation.dart';
 
 class AddClothesScreen extends StatefulWidget {
   const AddClothesScreen({super.key});
@@ -24,7 +23,8 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
   final _heightController = TextEditingController();
   final _widthController = TextEditingController();
   String? _selectedCategory;
-  File? _imageFile;
+  XFile? _imageFile;
+  Uint8List? _imageBytes;       // for web preview
   bool _isUploading = false;
 
   final List<String> _categories = ['Shirt', 'Pants', 'Shoes'];
@@ -34,8 +34,15 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
     final picked = await picker.pickImage(source: ImageSource.gallery);
     if (picked != null) {
       setState(() {
-        _imageFile = File(picked.path);
+        _imageFile = picked;
       });
+      if (kIsWeb) {
+        // Load bytes for web preview and later upload
+        final bytes = await picked.readAsBytes();
+        setState(() {
+          _imageBytes = bytes;
+        });
+      }
     }
   }
 
@@ -56,8 +63,19 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
       final userId = FirebaseAuth.instance.currentUser!.uid;
       final fileName = '${const Uuid().v4()}.jpg';
       final ref = FirebaseStorage.instance.ref().child('clothes/$userId/$fileName');
-      await ref.putFile(_imageFile!);
-      final downloadUrl = await ref.getDownloadURL();
+      String downloadUrl;
+
+      if (kIsWeb) {
+        // Web: upload bytes
+        final bytes = await _imageFile!.readAsBytes();
+        await ref.putData(bytes);
+        downloadUrl = await ref.getDownloadURL();
+      } else {
+        // Mobile: upload bytes (works with XFile)
+        final bytes = await _imageFile!.readAsBytes();
+        await ref.putData(bytes);
+        downloadUrl = await ref.getDownloadURL();
+      }
 
       final newItem = ClothingItem(
         id: const Uuid().v4(),
@@ -101,17 +119,19 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
                     border: Border.all(color: Colors.grey),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: _imageFile != null
-                      ? kIsWeb
-                      ? Image.network(_imageFile!.path, fit: BoxFit.contain) // ✅ Web Fix
-                      : Image.file(_imageFile!, fit: BoxFit.contain)        // ✅ Mobile/Desktop
-                      : const Column(
+                  child: _imageFile == null
+                      ? const Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.add_photo_alternate, size: 50),
                       Text('Tap to select image'),
                     ],
-                  ),
+                  )
+                      : kIsWeb && _imageBytes != null
+                      ? Image.memory(_imageBytes!, fit: BoxFit.contain)
+                      : kIsWeb
+                      ? Image.network(_imageFile!.path, fit: BoxFit.contain)
+                      : Image.network(_imageFile!.path, fit: BoxFit.contain), // mobile works with network too
                 ),
               ),
               const SizedBox(height: 20),
