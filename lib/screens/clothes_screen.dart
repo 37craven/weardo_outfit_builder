@@ -3,9 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:weardo_outfit_builder/providers/clothes_provider.dart';
 import 'package:weardo_outfit_builder/providers/favorite_provider.dart';
 import 'package:weardo_outfit_builder/models/clothing_item.dart';
-import 'package:weardo_outfit_builder/models/favorite_outfit.dart';
 import 'package:go_router/go_router.dart';
-import 'package:uuid/uuid.dart';
 
 class ClothesScreen extends StatefulWidget {
   const ClothesScreen({super.key});

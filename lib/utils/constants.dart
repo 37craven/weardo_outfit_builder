@@ -12,7 +12,7 @@ class AppConstants {
 
   static const List<String> allCategories = [categoryShirt, categoryPants, categoryShoes];
 
-  // Firestore collection names
+  // Supabase table names
   static const String collectionUsers = 'users';
   static const String collectionClothes = 'clothes';
   static const String collectionFavorites = 'favorites';

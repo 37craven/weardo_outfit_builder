@@ -18,22 +18,22 @@ class FavoriteOutfit {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'userId': userId,
-      'shirtId': shirtId,
-      'pantsId': pantsId,
-      'shoesId': shoesId,
-      'savedAt': savedAt,
+      'user_id': userId,
+      'shirt_id': shirtId,
+      'pants_id': pantsId,
+      'shoes_id': shoesId,
+      'saved_at': savedAt.toIso8601String(),
     };
   }
 
   factory FavoriteOutfit.fromMap(String id, Map<String, dynamic> map) {
     return FavoriteOutfit(
       id: id,
-      userId: map['userId'],
-      shirtId: map['shirtId'],
-      pantsId: map['pantsId'],
-      shoesId: map['shoesId'],
-      savedAt: (map['savedAt'] as DateTime),
+      userId: map['user_id'],
+      shirtId: map['shirt_id'],
+      pantsId: map['pants_id'],
+      shoesId: map['shoes_id'],
+      savedAt: DateTime.parse(map['saved_at']),
     );
   }
 }

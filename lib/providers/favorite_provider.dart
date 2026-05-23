@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:weardo_outfit_builder/models/favorite_outfit.dart';
 
 class FavoriteProvider extends ChangeNotifier {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   List<FavoriteOutfit> _favorites = [];
   bool _isLoading = false;
 
@@ -12,31 +10,38 @@ class FavoriteProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
 
   Future<void> fetchFavorites() async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
+    final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) return;
 
     _isLoading = true;
     notifyListeners();
 
-    final query = await _firestore
-        .collection('favorites')
-        .where('userId', isEqualTo: userId)
-        .orderBy('savedAt', descending: true)
-        .get();
+    final data = await Supabase.instance.client
+        .from('favorites')
+        .select('*')
+        .eq('user_id', userId)
+        .order('saved_at', ascending: false);
 
-    _favorites = query.docs.map((doc) => FavoriteOutfit.fromMap(doc.id, doc.data())).toList();
+    _favorites = (data as List)
+        .map((row) => FavoriteOutfit.fromMap(row['id'], row))
+        .toList();
 
     _isLoading = false;
     notifyListeners();
   }
 
   Future<void> addFavorite(FavoriteOutfit outfit) async {
-    await _firestore.collection('favorites').doc(outfit.id).set(outfit.toMap());
+    await Supabase.instance.client
+        .from('favorites')
+        .insert(outfit.toMap());
     await fetchFavorites();
   }
 
   Future<void> removeFavorite(String id) async {
-    await _firestore.collection('favorites').doc(id).delete();
+    await Supabase.instance.client
+        .from('favorites')
+        .delete()
+        .eq('id', id);
     await fetchFavorites();
   }
 }

@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthProvider extends ChangeNotifier {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final GoTrueClient _auth = Supabase.instance.client.auth;
   User? _user;
   String? _username;
 
@@ -12,10 +10,12 @@ class AuthProvider extends ChangeNotifier {
   String? get username => _username;
 
   AuthProvider() {
-    _auth.authStateChanges().listen((user) async {
-      _user = user;
-      if (user != null) {
-        await _fetchUserData(user.uid);
+    _auth.onAuthStateChange.listen((event) async {
+      _user = event.session?.user;
+      if (_user != null) {
+        await _fetchUserData(_user!.id);
+      } else {
+        _username = null;
       }
       notifyListeners();
     });
@@ -23,23 +23,24 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> _fetchUserData(String uid) async {
     try {
-      final doc = await _firestore.collection('users').doc(uid).get();
-      if (doc.exists) {
-        _username = doc['username'] ?? 'User';
+      final data = await Supabase.instance.client
+          .from('users')
+          .select('username')
+          .eq('id', uid)
+          .maybeSingle();
+      if (data != null) {
+        _username = data['username'] ?? 'User';
       } else {
-        // If the document doesn't exist, create it now
         final email = _user?.email ?? '';
         final defaultUsername = email.split('@').first;
-        await _firestore.collection('users').doc(uid).set({
+        await Supabase.instance.client.from('users').insert({
+          'id': uid,
           'username': defaultUsername,
           'email': email,
-          'createdAt': FieldValue.serverTimestamp(),
         });
         _username = defaultUsername;
-        debugPrint('Created missing user document for uid: $uid');
       }
     } catch (e) {
-      debugPrint('Error fetching user data: $e');
       _username = 'User';
     }
     notifyListeners();
@@ -47,27 +48,26 @@ class AuthProvider extends ChangeNotifier {
 
   Future<String?> login(String email, String password) async {
     try {
-      await _auth.signInWithEmailAndPassword(email: email, password: password);
+      await _auth.signInWithPassword(email: email, password: password);
       return null;
-    } on FirebaseAuthException catch (e) {
+    } on AuthException catch (e) {
       return e.message;
     }
   }
 
   Future<String?> register(String email, String username, String password) async {
     try {
-      UserCredential cred = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      // Create user document in Firestore
-      await _firestore.collection('users').doc(cred.user!.uid).set({
-        'username': username,
-        'email': email,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      final response = await _auth.signUp(email: email, password: password);
+      final user = response.user;
+      if (user != null) {
+        await Supabase.instance.client.from('users').insert({
+          'id': user.id,
+          'username': username,
+          'email': email,
+        });
+      }
       return null;
-    } on FirebaseAuthException catch (e) {
+    } on AuthException catch (e) {
       return e.message;
     }
   }

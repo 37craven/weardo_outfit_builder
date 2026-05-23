@@ -1,10 +1,9 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:weardo_outfit_builder/models/clothing_item.dart';
 import 'package:provider/provider.dart';
@@ -60,22 +59,21 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
     setState(() => _isUploading = true);
 
     try {
-      final userId = FirebaseAuth.instance.currentUser!.uid;
+      final userId = Supabase.instance.client.auth.currentUser!.id;
       final fileName = '${const Uuid().v4()}.jpg';
-      final ref = FirebaseStorage.instance.ref().child('clothes/$userId/$fileName');
-      String downloadUrl;
+      final path = '$userId/$fileName';
+      final storage = Supabase.instance.client.storage.from('clothes');
 
-      if (kIsWeb) {
-        // Web: upload bytes
-        final bytes = await _imageFile!.readAsBytes();
-        await ref.putData(bytes);
-        downloadUrl = await ref.getDownloadURL();
-      } else {
-        // Mobile: upload bytes (works with XFile)
-        final bytes = await _imageFile!.readAsBytes();
-        await ref.putData(bytes);
-        downloadUrl = await ref.getDownloadURL();
-      }
+      final bytes = await _imageFile!.readAsBytes();
+      final tempFile = File('${Directory.systemTemp.path}/$fileName');
+      await tempFile.writeAsBytes(bytes);
+      await storage.upload(
+        path,
+        tempFile,
+        fileOptions: const FileOptions(contentType: 'image/jpeg'),
+      );
+      await tempFile.delete();
+      final downloadUrl = storage.getPublicUrl(path);
 
       final newItem = ClothingItem(
         id: const Uuid().v4(),

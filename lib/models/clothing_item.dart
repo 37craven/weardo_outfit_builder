@@ -4,7 +4,7 @@ class ClothingItem {
   final String imageUrl;
   final double heightInches;
   final double widthInches;
-  final String category; // 'Shirt', 'Pants', 'Shoes'
+  final String category;
   final DateTime createdAt;
 
   ClothingItem({
@@ -20,24 +20,24 @@ class ClothingItem {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'userId': userId,
-      'imageUrl': imageUrl,
-      'heightInches': heightInches,
-      'widthInches': widthInches,
+      'user_id': userId,
+      'image_url': imageUrl,
+      'height_inches': heightInches,
+      'width_inches': widthInches,
       'category': category,
-      'createdAt': createdAt,
+      'created_at': createdAt.toIso8601String(),
     };
   }
 
   factory ClothingItem.fromMap(String id, Map<String, dynamic> map) {
     return ClothingItem(
       id: id,
-      userId: map['userId'],
-      imageUrl: map['imageUrl'],
-      heightInches: (map['heightInches'] as num).toDouble(),
-      widthInches: (map['widthInches'] as num).toDouble(),
+      userId: map['user_id'],
+      imageUrl: map['image_url'],
+      heightInches: (map['height_inches'] as num).toDouble(),
+      widthInches: (map['width_inches'] as num).toDouble(),
       category: map['category'],
-      createdAt: (map['createdAt'] as DateTime),
+      createdAt: DateTime.parse(map['created_at']),
     );
   }
 }

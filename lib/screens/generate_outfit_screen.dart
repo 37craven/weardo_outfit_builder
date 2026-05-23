@@ -193,7 +193,7 @@ class _GenerateOutfitScreenState extends State<GenerateOutfitScreen> {
       return;
     }
 
-    final userId = Provider.of<AuthProvider>(context, listen: false).currentUser?.uid;
+    final userId = Provider.of<AuthProvider>(context, listen: false).currentUser?.id;
     if (userId == null) return;
 
     final newFavorite = FavoriteOutfit(

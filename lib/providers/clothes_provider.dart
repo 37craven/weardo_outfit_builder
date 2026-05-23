@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:weardo_outfit_builder/models/clothing_item.dart';
 
 class ClothesProvider extends ChangeNotifier {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   List<ClothingItem> _allClothes = [];
   bool _isLoading = false;
 
@@ -25,33 +23,39 @@ class ClothesProvider extends ChangeNotifier {
 
   int getItemCount() => _allClothes.length;
 
-  // Make this async and return Future
   Future<void> fetchUserClothes() async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
+    final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) return;
 
     _isLoading = true;
     notifyListeners();
 
-    final query = await _firestore
-        .collection('clothes')
-        .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
-        .get();
+    final data = await Supabase.instance.client
+        .from('clothes')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', ascending: false);
 
-    _allClothes = query.docs.map((doc) => ClothingItem.fromMap(doc.id, doc.data())).toList();
+    _allClothes = (data as List)
+        .map((row) => ClothingItem.fromMap(row['id'], row))
+        .toList();
 
     _isLoading = false;
     notifyListeners();
   }
 
   Future<void> addClothingItem(ClothingItem item) async {
-    await _firestore.collection('clothes').doc(item.id).set(item.toMap());
-    await fetchUserClothes(); // refresh after add
+    await Supabase.instance.client
+        .from('clothes')
+        .insert(item.toMap());
+    await fetchUserClothes();
   }
 
   Future<void> removeClothingItem(String id) async {
-    await _firestore.collection('clothes').doc(id).delete();
+    await Supabase.instance.client
+        .from('clothes')
+        .delete()
+        .eq('id', id);
     await fetchUserClothes();
   }
 }

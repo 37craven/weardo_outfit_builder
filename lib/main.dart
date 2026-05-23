@@ -1,5 +1,5 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:weardo_outfit_builder/providers/auth_provider.dart';
 import 'package:weardo_outfit_builder/providers/clothes_provider.dart';
@@ -12,13 +12,12 @@ import 'package:weardo_outfit_builder/screens/clothes_screen.dart';
 import 'package:weardo_outfit_builder/screens/add_clothes_screen.dart';
 import 'package:weardo_outfit_builder/screens/profile_screen.dart';
 import 'package:go_router/go_router.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
+  await Supabase.initialize(
+    url: 'https://dhmtnjwtqqcrecqmxpfc.supabase.co',
+    anonKey: 'sb_publishable_a2rTSMLcLOTnfb6opH-azQ_dTkrmq2Y',
   );
   runApp(WeardoApp());
 }
