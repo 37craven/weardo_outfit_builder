@@ -1,24 +1,22 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
-import 'package:weardo_outfit_builder/providers/auth_provider.dart';
-import 'package:weardo_outfit_builder/providers/clothes_provider.dart';
-import 'package:weardo_outfit_builder/providers/favorite_provider.dart';
-import 'package:weardo_outfit_builder/screens/login_screen.dart';
-import 'package:weardo_outfit_builder/screens/register_screen.dart';
-import 'package:weardo_outfit_builder/screens/home_screen.dart';
-import 'package:weardo_outfit_builder/screens/generate_outfit_screen.dart';
-import 'package:weardo_outfit_builder/screens/clothes_screen.dart';
-import 'package:weardo_outfit_builder/screens/add_clothes_screen.dart';
-import 'package:weardo_outfit_builder/screens/profile_screen.dart';
 import 'package:go_router/go_router.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
+import 'package:weardo_outfit_builder/features/auth/providers/auth_provider.dart';
+import 'package:weardo_outfit_builder/features/catalog/providers/catalog_provider.dart';
+import 'package:weardo_outfit_builder/features/outfit_builder/providers/saved_outfits_provider.dart';
+import 'package:weardo_outfit_builder/features/auth/screens/login_screen.dart';
+import 'package:weardo_outfit_builder/features/auth/screens/register_screen.dart';
+import 'package:weardo_outfit_builder/features/catalog/screens/catalog_screen.dart';
+import 'package:weardo_outfit_builder/features/outfit_builder/screens/builder_screen.dart';
+import 'package:weardo_outfit_builder/features/catalog/screens/add_clothing_screen.dart';
+import 'package:weardo_outfit_builder/features/profile/screens/profile_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
+  await Supabase.initialize(
+    url: 'https://dhmtnjwtqqcrecqmxpfc.supabase.co',
+    anonKey: 'sb_publishable_a2rTSMLcLOTnfb6opH-azQ_dTkrmq2Y',
   );
   runApp(WeardoApp());
 }
@@ -50,18 +48,50 @@ class WeardoApp extends StatelessWidget {
       final isLoggedIn = authProvider.currentUser != null;
       final isLoginRoute = state.matchedLocation == '/login' || state.matchedLocation == '/register';
 
-      if (isLoggedIn && isLoginRoute) return '/home';
+      if (isLoggedIn && isLoginRoute) return '/clothes';
       if (!isLoggedIn && !isLoginRoute) return '/login';
       return null;
     },
     routes: [
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(path: '/register', builder: (context, state) => const RegisterScreen()),
-      GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
-      GoRoute(path: '/generate', builder: (context, state) => const GenerateOutfitScreen()),
-      GoRoute(path: '/clothes', builder: (context, state) => const ClothesScreen()),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) => MainShell(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(
+            routes: [GoRoute(path: '/clothes', builder: (context, state) => const ClothesScreen())],
+          ),
+          StatefulShellBranch(
+            routes: [GoRoute(path: '/generate', builder: (context, state) => const GenerateOutfitScreen())],
+          ),
+          StatefulShellBranch(
+            routes: [GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen())],
+          ),
+        ],
+      ),
       GoRoute(path: '/add-clothes', builder: (context, state) => const AddClothesScreen()),
-      GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen()),
     ],
   );
+}
+
+class MainShell extends StatelessWidget {
+  final StatefulNavigationShell navigationShell;
+
+  const MainShell({super.key, required this.navigationShell});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: navigationShell,
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: navigationShell.currentIndex,
+        onDestinationSelected: (index) => navigationShell.goBranch(index),
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.checkroom), label: 'Clothes'),
+          NavigationDestination(icon: Icon(Icons.auto_awesome), label: 'Generate'),
+          NavigationDestination(icon: Icon(Icons.person), label: 'Profile'),
+        ],
+      ),
+    );
+  }
 }

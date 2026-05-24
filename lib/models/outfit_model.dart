@@ -1,7 +1,8 @@
 class FavoriteOutfit {
   final String id;
   final String userId;
-  final String shirtId;
+  final String? outerId;
+  final String innerId;
   final String pantsId;
   final String shoesId;
   final DateTime savedAt;
@@ -9,7 +10,8 @@ class FavoriteOutfit {
   FavoriteOutfit({
     required this.id,
     required this.userId,
-    required this.shirtId,
+    this.outerId,
+    required this.innerId,
     required this.pantsId,
     required this.shoesId,
     required this.savedAt,
@@ -18,22 +20,24 @@ class FavoriteOutfit {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'userId': userId,
-      'shirtId': shirtId,
-      'pantsId': pantsId,
-      'shoesId': shoesId,
-      'savedAt': savedAt,
+      'user_id': userId,
+      'outer_id': outerId,
+      'inner_id': innerId,
+      'pants_id': pantsId,
+      'shoes_id': shoesId,
+      'saved_at': savedAt.toIso8601String(),
     };
   }
 
   factory FavoriteOutfit.fromMap(String id, Map<String, dynamic> map) {
     return FavoriteOutfit(
       id: id,
-      userId: map['userId'],
-      shirtId: map['shirtId'],
-      pantsId: map['pantsId'],
-      shoesId: map['shoesId'],
-      savedAt: (map['savedAt'] as DateTime),
+      userId: map['user_id'],
+      outerId: map['outer_id'],
+      innerId: map['inner_id'],
+      pantsId: map['pants_id'],
+      shoesId: map['shoes_id'],
+      savedAt: DateTime.parse(map['saved_at']),
     );
   }
 }

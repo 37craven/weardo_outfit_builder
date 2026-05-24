@@ -1,14 +1,12 @@
+import 'dart:io';
 import 'dart:typed_data';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
-import 'package:weardo_outfit_builder/models/clothing_item.dart';
+import 'package:weardo_outfit_builder/models/clothing_model.dart';
 import 'package:provider/provider.dart';
-import 'package:weardo_outfit_builder/providers/clothes_provider.dart';
+import 'package:weardo_outfit_builder/features/catalog/providers/catalog_provider.dart';
 import 'package:go_router/go_router.dart';
 
 class AddClothesScreen extends StatefulWidget {
@@ -24,25 +22,20 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
   final _widthController = TextEditingController();
   String? _selectedCategory;
   XFile? _imageFile;
-  Uint8List? _imageBytes;       // for web preview
+  Uint8List? _imageBytes;       // for image preview
   bool _isUploading = false;
 
-  final List<String> _categories = ['Shirt', 'Pants', 'Shoes'];
+  final List<String> _categories = ['Outer', 'Inner', 'Pants', 'Shoes'];
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery);
     if (picked != null) {
+      final bytes = await picked.readAsBytes();
       setState(() {
         _imageFile = picked;
+        _imageBytes = bytes;
       });
-      if (kIsWeb) {
-        // Load bytes for web preview and later upload
-        final bytes = await picked.readAsBytes();
-        setState(() {
-          _imageBytes = bytes;
-        });
-      }
     }
   }
 
@@ -60,22 +53,18 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
     setState(() => _isUploading = true);
 
     try {
-      final userId = FirebaseAuth.instance.currentUser!.uid;
+      final userId = Supabase.instance.client.auth.currentUser!.id;
       final fileName = '${const Uuid().v4()}.jpg';
-      final ref = FirebaseStorage.instance.ref().child('clothes/$userId/$fileName');
-      String downloadUrl;
+      final path = '$userId/$fileName';
+      final storage = Supabase.instance.client.storage.from('clothes');
 
-      if (kIsWeb) {
-        // Web: upload bytes
-        final bytes = await _imageFile!.readAsBytes();
-        await ref.putData(bytes);
-        downloadUrl = await ref.getDownloadURL();
-      } else {
-        // Mobile: upload bytes (works with XFile)
-        final bytes = await _imageFile!.readAsBytes();
-        await ref.putData(bytes);
-        downloadUrl = await ref.getDownloadURL();
-      }
+      final bytes = await _imageFile!.readAsBytes();
+      await storage.uploadBinary(
+        path,
+        bytes,
+        fileOptions: const FileOptions(contentType: 'image/jpeg'),
+      );
+      final downloadUrl = storage.getPublicUrl(path);
 
       final newItem = ClothingItem(
         id: const Uuid().v4(),
@@ -127,11 +116,9 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
                       Text('Tap to select image'),
                     ],
                   )
-                      : kIsWeb && _imageBytes != null
+                      : _imageBytes != null
                       ? Image.memory(_imageBytes!, fit: BoxFit.contain)
-                      : kIsWeb
-                      ? Image.network(_imageFile!.path, fit: BoxFit.contain)
-                      : Image.network(_imageFile!.path, fit: BoxFit.contain), // mobile works with network too
+                      : Image.file(File(_imageFile!.path), fit: BoxFit.contain),
                 ),
               ),
               const SizedBox(height: 20),

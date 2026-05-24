@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:weardo_outfit_builder/providers/auth_provider.dart';
+import 'package:weardo_outfit_builder/features/auth/providers/auth_provider.dart';
 import 'package:go_router/go_router.dart';
 
 class RegisterScreen extends StatelessWidget {
@@ -46,7 +46,7 @@ class RegisterScreen extends StatelessWidget {
                   passwordController.text.trim(),
                 );
                 if (error == null) {
-                  if (context.mounted) context.go('/home');
+                  if (context.mounted) context.go('/clothes');
                 } else {
                   showError(error);
                 }
