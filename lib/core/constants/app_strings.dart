@@ -6,11 +6,12 @@ class AppConstants {
   static const double referencePixels = 200.0;
 
   // Category strings
-  static const String categoryShirt = 'Shirt';
+  static const String categoryOuter = 'Outer';
+  static const String categoryInner = 'Inner';
   static const String categoryPants = 'Pants';
   static const String categoryShoes = 'Shoes';
 
-  static const List<String> allCategories = [categoryShirt, categoryPants, categoryShoes];
+  static const List<String> allCategories = [categoryOuter, categoryInner, categoryPants, categoryShoes];
 
   // Supabase table names
   static const String collectionUsers = 'users';
@@ -25,7 +26,7 @@ class AppConstants {
   static const String errorGeneric = 'Something went wrong. Please try again.';
   static const String errorNoImage = 'Please select an image.';
   static const String errorNoCategory = 'Please select a category.';
-  static const String errorIncompleteOutfit = 'Complete outfit required (shirt, pants, shoes).';
+  static const String errorIncompleteOutfit = 'Complete outfit required (inner, pants, shoes).';
 
   // Theme colors
   static const Color primaryColor = Colors.purple;

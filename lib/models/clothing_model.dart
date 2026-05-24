@@ -6,6 +6,7 @@ class ClothingItem {
   final double widthInches;
   final String category;
   final DateTime createdAt;
+  final bool isFavorited;
 
   ClothingItem({
     required this.id,
@@ -15,7 +16,21 @@ class ClothingItem {
     required this.widthInches,
     required this.category,
     required this.createdAt,
+    this.isFavorited = false,
   });
+
+  ClothingItem copyWith({bool? isFavorited}) {
+    return ClothingItem(
+      id: id,
+      userId: userId,
+      imageUrl: imageUrl,
+      heightInches: heightInches,
+      widthInches: widthInches,
+      category: category,
+      createdAt: createdAt,
+      isFavorited: isFavorited ?? this.isFavorited,
+    );
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -26,6 +41,7 @@ class ClothingItem {
       'width_inches': widthInches,
       'category': category,
       'created_at': createdAt.toIso8601String(),
+      'is_favorited': isFavorited,
     };
   }
 
@@ -38,6 +54,7 @@ class ClothingItem {
       widthInches: (map['width_inches'] as num).toDouble(),
       category: map['category'],
       createdAt: DateTime.parse(map['created_at']),
+      isFavorited: map['is_favorited'] ?? false,
     );
   }
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:weardo_outfit_builder/models/clothing_item.dart';
+import 'package:weardo_outfit_builder/models/clothing_model.dart';
 
 class ClothesProvider extends ChangeNotifier {
   List<ClothingItem> _allClothes = [];
@@ -9,8 +9,12 @@ class ClothesProvider extends ChangeNotifier {
   List<ClothingItem> get allClothes => _allClothes;
   bool get isLoading => _isLoading;
 
-  List<ClothingItem> getShirts() {
-    return _allClothes.where((c) => c.category == 'Shirt').toList();
+  List<ClothingItem> getOuter() {
+    return _allClothes.where((c) => c.category == 'Outer').toList();
+  }
+
+  List<ClothingItem> getInner() {
+    return _allClothes.where((c) => c.category == 'Inner').toList();
   }
 
   List<ClothingItem> getPants() {
@@ -19,6 +23,10 @@ class ClothesProvider extends ChangeNotifier {
 
   List<ClothingItem> getShoes() {
     return _allClothes.where((c) => c.category == 'Shoes').toList();
+  }
+
+  List<ClothingItem> getFavoriteItems() {
+    return _allClothes.where((c) => c.isFavorited).toList();
   }
 
   int getItemCount() => _allClothes.length;
@@ -57,5 +65,18 @@ class ClothesProvider extends ChangeNotifier {
         .delete()
         .eq('id', id);
     await fetchUserClothes();
+  }
+
+  Future<void> toggleFavoriteItem(String id) async {
+    final item = _allClothes.firstWhere((c) => c.id == id);
+    final newValue = !item.isFavorited;
+    await Supabase.instance.client
+        .from('clothes')
+        .update({'is_favorited': newValue})
+        .eq('id', id);
+    _allClothes = _allClothes.map((c) {
+      return c.id == id ? c.copyWith(isFavorited: newValue) : c;
+    }).toList();
+    notifyListeners();
   }
 }

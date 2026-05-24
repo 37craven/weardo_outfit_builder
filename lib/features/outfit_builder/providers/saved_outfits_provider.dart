@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:weardo_outfit_builder/models/favorite_outfit.dart';
+import 'package:weardo_outfit_builder/models/outfit_model.dart';
 
 class FavoriteProvider extends ChangeNotifier {
   List<FavoriteOutfit> _favorites = [];

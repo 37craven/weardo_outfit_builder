@@ -1,13 +1,12 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
-import 'package:weardo_outfit_builder/models/clothing_item.dart';
+import 'package:weardo_outfit_builder/models/clothing_model.dart';
 import 'package:provider/provider.dart';
-import 'package:weardo_outfit_builder/providers/clothes_provider.dart';
+import 'package:weardo_outfit_builder/features/catalog/providers/catalog_provider.dart';
 import 'package:go_router/go_router.dart';
 
 class AddClothesScreen extends StatefulWidget {
@@ -23,25 +22,20 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
   final _widthController = TextEditingController();
   String? _selectedCategory;
   XFile? _imageFile;
-  Uint8List? _imageBytes;       // for web preview
+  Uint8List? _imageBytes;       // for image preview
   bool _isUploading = false;
 
-  final List<String> _categories = ['Shirt', 'Pants', 'Shoes'];
+  final List<String> _categories = ['Outer', 'Inner', 'Pants', 'Shoes'];
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery);
     if (picked != null) {
+      final bytes = await picked.readAsBytes();
       setState(() {
         _imageFile = picked;
+        _imageBytes = bytes;
       });
-      if (kIsWeb) {
-        // Load bytes for web preview and later upload
-        final bytes = await picked.readAsBytes();
-        setState(() {
-          _imageBytes = bytes;
-        });
-      }
     }
   }
 
@@ -65,14 +59,11 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
       final storage = Supabase.instance.client.storage.from('clothes');
 
       final bytes = await _imageFile!.readAsBytes();
-      final tempFile = File('${Directory.systemTemp.path}/$fileName');
-      await tempFile.writeAsBytes(bytes);
-      await storage.upload(
+      await storage.uploadBinary(
         path,
-        tempFile,
+        bytes,
         fileOptions: const FileOptions(contentType: 'image/jpeg'),
       );
-      await tempFile.delete();
       final downloadUrl = storage.getPublicUrl(path);
 
       final newItem = ClothingItem(
@@ -125,11 +116,9 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
                       Text('Tap to select image'),
                     ],
                   )
-                      : kIsWeb && _imageBytes != null
+                      : _imageBytes != null
                       ? Image.memory(_imageBytes!, fit: BoxFit.contain)
-                      : kIsWeb
-                      ? Image.network(_imageFile!.path, fit: BoxFit.contain)
-                      : Image.network(_imageFile!.path, fit: BoxFit.contain), // mobile works with network too
+                      : Image.file(File(_imageFile!.path), fit: BoxFit.contain),
                 ),
               ),
               const SizedBox(height: 20),

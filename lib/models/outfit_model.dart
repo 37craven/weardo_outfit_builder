@@ -1,7 +1,8 @@
 class FavoriteOutfit {
   final String id;
   final String userId;
-  final String shirtId;
+  final String? outerId;
+  final String innerId;
   final String pantsId;
   final String shoesId;
   final DateTime savedAt;
@@ -9,7 +10,8 @@ class FavoriteOutfit {
   FavoriteOutfit({
     required this.id,
     required this.userId,
-    required this.shirtId,
+    this.outerId,
+    required this.innerId,
     required this.pantsId,
     required this.shoesId,
     required this.savedAt,
@@ -19,7 +21,8 @@ class FavoriteOutfit {
     return {
       'id': id,
       'user_id': userId,
-      'shirt_id': shirtId,
+      'outer_id': outerId,
+      'inner_id': innerId,
       'pants_id': pantsId,
       'shoes_id': shoesId,
       'saved_at': savedAt.toIso8601String(),
@@ -30,7 +33,8 @@ class FavoriteOutfit {
     return FavoriteOutfit(
       id: id,
       userId: map['user_id'],
-      shirtId: map['shirt_id'],
+      outerId: map['outer_id'],
+      innerId: map['inner_id'],
       pantsId: map['pants_id'],
       shoesId: map['shoes_id'],
       savedAt: DateTime.parse(map['saved_at']),
