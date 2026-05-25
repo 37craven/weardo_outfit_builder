@@ -34,6 +34,13 @@ class _ClothesScreenState extends State<ClothesScreen> with SingleTickerProvider
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Closet'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.auto_awesome),
+            tooltip: 'Generate Outfit',
+            onPressed: () => context.go('/generate'),
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -149,9 +156,6 @@ class _ClothingCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('${item.heightInches.toStringAsFixed(1)}" x ${item.widthInches.toStringAsFixed(1)}"',
-                          style: const TextStyle(fontSize: 12)),
-                      const SizedBox(height: 2),
                       Text(item.category, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
                     ],
                   ),

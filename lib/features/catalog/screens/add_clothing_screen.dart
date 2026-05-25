@@ -18,8 +18,6 @@ class AddClothesScreen extends StatefulWidget {
 
 class _AddClothesScreenState extends State<AddClothesScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _heightController = TextEditingController();
-  final _widthController = TextEditingController();
   String? _selectedCategory;
   XFile? _imageFile;
   Uint8List? _imageBytes;       // for image preview
@@ -66,12 +64,13 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
       );
       final downloadUrl = storage.getPublicUrl(path);
 
+      const double defaultSize = 30.0;
       final newItem = ClothingItem(
         id: const Uuid().v4(),
         userId: userId,
         imageUrl: downloadUrl,
-        heightInches: double.parse(_heightController.text),
-        widthInches: double.parse(_widthController.text),
+        heightInches: defaultSize,
+        widthInches: defaultSize,
         category: _selectedCategory!,
         createdAt: DateTime.now(),
       );
@@ -122,20 +121,6 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              TextFormField(
-                controller: _heightController,
-                decoration: const InputDecoration(labelText: 'Height (inches)', border: OutlineInputBorder()),
-                keyboardType: TextInputType.number,
-                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _widthController,
-                decoration: const InputDecoration(labelText: 'Width (inches)', border: OutlineInputBorder()),
-                keyboardType: TextInputType.number,
-                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-              ),
-              const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
                 items: _categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),

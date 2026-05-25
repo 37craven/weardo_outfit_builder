@@ -81,17 +81,20 @@ class MainShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hideNav = navigationShell.currentIndex == 1;
     return Scaffold(
       body: navigationShell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: navigationShell.currentIndex,
-        onDestinationSelected: (index) => navigationShell.goBranch(index),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.checkroom), label: 'Clothes'),
-          NavigationDestination(icon: Icon(Icons.auto_awesome), label: 'Generate'),
-          NavigationDestination(icon: Icon(Icons.person), label: 'Profile'),
-        ],
-      ),
+      bottomNavigationBar: hideNav
+          ? null
+          : NavigationBar(
+              selectedIndex: navigationShell.currentIndex,
+              onDestinationSelected: (index) => navigationShell.goBranch(index),
+              destinations: const [
+                NavigationDestination(icon: Icon(Icons.checkroom), label: 'Clothes'),
+                NavigationDestination(icon: Icon(Icons.auto_awesome), label: 'Generate'),
+                NavigationDestination(icon: Icon(Icons.person), label: 'Profile'),
+              ],
+            ),
     );
   }
 }

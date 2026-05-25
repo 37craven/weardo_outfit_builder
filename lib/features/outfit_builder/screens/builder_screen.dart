@@ -28,9 +28,6 @@ class _GenerateOutfitScreenState extends State<GenerateOutfitScreen> {
 
   bool _twoLayerMode = false;
 
-  static const double referenceInches = 30.0;
-  static const double referencePixels = 200.0;
-
   @override
   void initState() {
     super.initState();
@@ -68,128 +65,48 @@ class _GenerateOutfitScreenState extends State<GenerateOutfitScreen> {
     });
   }
 
-  double _scaleWidth(double inches) {
-    return (inches / referenceInches) * referencePixels;
-  }
-
-  Widget _buildClothingBox({
-    required ClothingItem? item,
+  Widget _buildCarouselSection({
+    required String title,
+    required List<ClothingItem> items,
+    required ClothingItem? selectedItem,
+    required ValueChanged<ClothingItem> onChanged,
     required bool locked,
     required VoidCallback onLockToggle,
-    required VoidCallback onArrowLeft,
-    required VoidCallback onArrowRight,
-    required Alignment alignment,
-    required String emptyLabel,
   }) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300, width: 2),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                IconButton(
-                  icon: Icon(locked ? Icons.lock : Icons.lock_open, size: 20),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+              SizedBox(
+                width: 36,
+                height: 36,
+                child: IconButton(
+                  padding: EdgeInsets.zero,
+                  icon: Icon(locked ? Icons.lock : Icons.lock_open, size: 18),
                   onPressed: onLockToggle,
                 ),
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, size: 20),
-                      onPressed: onArrowLeft,
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.arrow_forward, size: 20),
-                      onPressed: onArrowRight,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          if (item != null)
-            SizedBox(
-              height: _scaleWidth(item.heightInches),
-              child: Align(
-                alignment: alignment,
-                child: Image.network(
-                  item.imageUrl,
-                  width: _scaleWidth(item.widthInches),
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 50),
-                ),
               ),
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Text(emptyLabel, style: const TextStyle(color: Colors.grey)),
-            ),
-        ],
-      ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 140,
+          child: items.isEmpty
+              ? Center(
+                  child: Text('No $title yet', style: const TextStyle(color: Colors.grey)),
+                )
+              : ClothingCarousel(
+                  items: items,
+                  selectedItem: selectedItem,
+                  onItemChanged: onChanged,
+                ),
+        ),
+      ],
     );
-  }
-
-  void _changeItem(String category, int direction) {
-    final clothesProvider = Provider.of<ClothesProvider>(context, listen: false);
-    List<ClothingItem> items;
-    ClothingItem? current;
-    bool locked;
-
-    switch (category) {
-      case 'outer':
-        items = clothesProvider.getOuter();
-        current = selectedOuter;
-        locked = outerLocked;
-        break;
-      case 'inner':
-        items = clothesProvider.getInner();
-        current = selectedInner;
-        locked = innerLocked;
-        break;
-      case 'pants':
-        items = clothesProvider.getPants();
-        current = selectedPants;
-        locked = pantsLocked;
-        break;
-      case 'shoes':
-        items = clothesProvider.getShoes();
-        current = selectedShoes;
-        locked = shoesLocked;
-        break;
-      default:
-        return;
-    }
-
-    if (locked || items.isEmpty || items.length == 1) return;
-
-    final currentIndex = items.indexOf(current!);
-    int newIndex = (currentIndex + direction) % items.length;
-    if (newIndex < 0) newIndex = items.length - 1;
-
-    setState(() {
-      switch (category) {
-        case 'outer':
-          selectedOuter = items[newIndex];
-          break;
-        case 'inner':
-          selectedInner = items[newIndex];
-          break;
-        case 'pants':
-          selectedPants = items[newIndex];
-          break;
-        case 'shoes':
-          selectedShoes = items[newIndex];
-          break;
-      }
-    });
   }
 
   Future<void> _saveOutfit() async {
@@ -254,7 +171,11 @@ class _GenerateOutfitScreenState extends State<GenerateOutfitScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Generate Outfit'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/clothes'),
+        ),
+        title: const Text('Outfit'),
         actions: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -311,41 +232,37 @@ class _GenerateOutfitScreenState extends State<GenerateOutfitScreen> {
                 child: Column(
                   children: [
                     if (_twoLayerMode)
-                      _buildClothingBox(
-                        item: selectedOuter,
+                      _buildCarouselSection(
+                        title: 'Outer',
+                        items: clothesProvider.getOuter(),
+                        selectedItem: selectedOuter,
+                        onChanged: (item) => setState(() => selectedOuter = item),
                         locked: outerLocked,
                         onLockToggle: () => setState(() => outerLocked = !outerLocked),
-                        onArrowLeft: () => _changeItem('outer', -1),
-                        onArrowRight: () => _changeItem('outer', 1),
-                        alignment: Alignment.bottomCenter,
-                        emptyLabel: 'No outer selected',
                       ),
-                    _buildClothingBox(
-                      item: selectedInner,
+                    _buildCarouselSection(
+                      title: 'Inner',
+                      items: clothesProvider.getInner(),
+                      selectedItem: selectedInner,
+                      onChanged: (item) => setState(() => selectedInner = item),
                       locked: innerLocked,
                       onLockToggle: () => setState(() => innerLocked = !innerLocked),
-                      onArrowLeft: () => _changeItem('inner', -1),
-                      onArrowRight: () => _changeItem('inner', 1),
-                      alignment: _twoLayerMode ? Alignment.bottomCenter : Alignment.center,
-                      emptyLabel: 'No inner selected',
                     ),
-                    _buildClothingBox(
-                      item: selectedPants,
+                    _buildCarouselSection(
+                      title: 'Pants',
+                      items: clothesProvider.getPants(),
+                      selectedItem: selectedPants,
+                      onChanged: (item) => setState(() => selectedPants = item),
                       locked: pantsLocked,
                       onLockToggle: () => setState(() => pantsLocked = !pantsLocked),
-                      onArrowLeft: () => _changeItem('pants', -1),
-                      onArrowRight: () => _changeItem('pants', 1),
-                      alignment: Alignment.topCenter,
-                      emptyLabel: 'No pants selected',
                     ),
-                    _buildClothingBox(
-                      item: selectedShoes,
+                    _buildCarouselSection(
+                      title: 'Shoes',
+                      items: clothesProvider.getShoes(),
+                      selectedItem: selectedShoes,
+                      onChanged: (item) => setState(() => selectedShoes = item),
                       locked: shoesLocked,
                       onLockToggle: () => setState(() => shoesLocked = !shoesLocked),
-                      onArrowLeft: () => _changeItem('shoes', -1),
-                      onArrowRight: () => _changeItem('shoes', 1),
-                      alignment: Alignment.center,
-                      emptyLabel: 'No shoes selected',
                     ),
                   ],
                 ),
@@ -380,6 +297,148 @@ class _GenerateOutfitScreenState extends State<GenerateOutfitScreen> {
           );
         },
       ),
+    );
+  }
+}
+
+class ClothingCarousel extends StatefulWidget {
+  final List<ClothingItem> items;
+  final ClothingItem? selectedItem;
+  final ValueChanged<ClothingItem> onItemChanged;
+
+  const ClothingCarousel({
+    super.key,
+    required this.items,
+    required this.selectedItem,
+    required this.onItemChanged,
+  });
+
+  @override
+  State<ClothingCarousel> createState() => _ClothingCarouselState();
+}
+
+class _ClothingCarouselState extends State<ClothingCarousel> {
+  late PageController _pageController;
+  bool _initialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(viewportFraction: 0.55);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncToSelected();
+      _initialized = true;
+    });
+  }
+
+  @override
+  void didUpdateWidget(ClothingCarousel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_initialized && widget.items.length == oldWidget.items.length) {
+      final newIndex = widget.selectedItem != null
+          ? widget.items.indexOf(widget.selectedItem!)
+          : -1;
+      final oldIndex = oldWidget.selectedItem != null
+          ? oldWidget.items.indexOf(oldWidget.selectedItem!)
+          : -1;
+      if (newIndex != -1 && newIndex != oldIndex) {
+        _pageController.animateToPage(
+          newIndex + 5000,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
+    }
+  }
+
+  void _syncToSelected() {
+    if (widget.selectedItem != null && widget.items.isNotEmpty) {
+      final index = widget.items.indexOf(widget.selectedItem!);
+      if (index != -1) {
+        _pageController.jumpToPage(index + 5000);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.items.isEmpty) return const SizedBox.shrink();
+    final bgColor = Theme.of(context).scaffoldBackgroundColor;
+
+    return Stack(
+      children: [
+        PageView.builder(
+          controller: _pageController,
+          itemCount: widget.items.length * 10000,
+          onPageChanged: (page) {
+            widget.onItemChanged(widget.items[page % widget.items.length]);
+          },
+          itemBuilder: (context, index) {
+            final item = widget.items[index % widget.items.length];
+            return AnimatedBuilder(
+              animation: _pageController,
+              builder: (context, child) {
+                double scale = 1.0;
+                if (_pageController.position.hasContentDimensions) {
+                  final pos = _pageController.page ?? index.toDouble();
+                  final diff = (pos - index).abs();
+                  scale = 1.0 - (diff * 0.2);
+                  scale = scale.clamp(0.8, 1.0);
+                }
+                return Transform.scale(
+                  scale: scale,
+                  child: child,
+                );
+              },
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Image.network(
+                    item.imageUrl,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 50),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+        IgnorePointer(
+          child: Row(
+            children: [
+              Container(
+                width: 30,
+                height: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [bgColor, bgColor.withValues(alpha: 0)],
+                  ),
+                ),
+              ),
+              const Spacer(),
+              Container(
+                width: 30,
+                height: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerRight,
+                    end: Alignment.centerLeft,
+                    colors: [bgColor, bgColor.withValues(alpha: 0)],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -455,13 +514,7 @@ class _PickerSheet extends StatelessWidget {
                                   child: Image.network(item.imageUrl, fit: BoxFit.contain),
                                 ),
                               ),
-                              Padding(
-                                padding: const EdgeInsets.all(4),
-                                child: Text(
-                                  '${item.heightInches.toStringAsFixed(1)}"',
-                                  style: const TextStyle(fontSize: 11),
-                                ),
-                              ),
+
                             ],
                           ),
                         ),
