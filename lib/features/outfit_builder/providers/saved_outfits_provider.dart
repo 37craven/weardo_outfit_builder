@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:weardo_outfit_builder/models/outfit_model.dart';
 
-class FavoriteProvider extends ChangeNotifier {
-  List<FavoriteOutfit> _favorites = [];
+class SavedOutfitsProvider extends ChangeNotifier {
+  List<FavoriteOutfit> _savedOutfits = [];
   bool _isLoading = false;
 
-  List<FavoriteOutfit> get favorites => _favorites;
+  List<FavoriteOutfit> get savedOutfits => _savedOutfits;
   bool get isLoading => _isLoading;
 
-  Future<void> fetchFavorites() async {
+  Future<void> fetchSavedOutfits() async {
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) return;
 
@@ -22,7 +22,7 @@ class FavoriteProvider extends ChangeNotifier {
         .eq('user_id', userId)
         .order('saved_at', ascending: false);
 
-    _favorites = (data as List)
+    _savedOutfits = (data as List)
         .map((row) => FavoriteOutfit.fromMap(row['id'], row))
         .toList();
 
@@ -30,18 +30,18 @@ class FavoriteProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> addFavorite(FavoriteOutfit outfit) async {
+  Future<void> addSavedOutfit(FavoriteOutfit outfit) async {
     await Supabase.instance.client
         .from('favorites')
         .insert(outfit.toMap());
-    await fetchFavorites();
+    await fetchSavedOutfits();
   }
 
-  Future<void> removeFavorite(String id) async {
+  Future<void> removeSavedOutfit(String id) async {
     await Supabase.instance.client
         .from('favorites')
         .delete()
         .eq('id', id);
-    await fetchFavorites();
+    await fetchSavedOutfits();
   }
 }

@@ -109,7 +109,7 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Clothing added!')));
-        context.go('/clothes');
+        context.go('/catalog');
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -165,7 +165,7 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
                 child: _isUploading ? const CircularProgressIndicator() : const Text('Add Clothing'),
               ),
               TextButton(
-                onPressed: () => context.go('/clothes'),
+                onPressed: () => context.go('/catalog'),
                 child: const Text('Cancel'),
               ),
             ],

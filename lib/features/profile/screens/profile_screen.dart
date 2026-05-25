@@ -19,7 +19,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<CatalogProvider>(context, listen: false).fetchUserClothes();
-      Provider.of<FavoriteProvider>(context, listen: false).fetchFavorites();
+      Provider.of<SavedOutfitsProvider>(context, listen: false).fetchSavedOutfits();
     });
   }
 
@@ -88,11 +88,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildSavedOutfits(BuildContext context) {
-    final favProvider = Provider.of<FavoriteProvider>(context);
+    final savedProvider = Provider.of<SavedOutfitsProvider>(context);
     final clothesProvider = Provider.of<CatalogProvider>(context);
-    final favorites = favProvider.favorites;
+    final favorites = savedProvider.savedOutfits;
 
-    if (favProvider.isLoading || clothesProvider.isLoading) {
+    if (savedProvider.isLoading || clothesProvider.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
@@ -164,7 +164,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               IconButton(
                 icon: const Icon(Icons.delete_outline, color: Colors.red),
-                onPressed: () => favProvider.removeFavorite(fav.id),
+                onPressed: () => savedProvider.removeSavedOutfit(fav.id),
               ),
             ],
           ),

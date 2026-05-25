@@ -30,7 +30,7 @@ class WeardoApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => CatalogProvider()),
-        ChangeNotifierProvider(create: (_) => FavoriteProvider()),
+        ChangeNotifierProvider(create: (_) => SavedOutfitsProvider()),
       ],
       child: MaterialApp.router(
         title: 'WEARDO',
@@ -48,7 +48,7 @@ class WeardoApp extends StatelessWidget {
       final isLoggedIn = authProvider.currentUser != null;
       final isLoginRoute = state.matchedLocation == '/login' || state.matchedLocation == '/register';
 
-      if (isLoggedIn && isLoginRoute) return '/clothes';
+      if (isLoggedIn && isLoginRoute) return '/catalog';
       if (!isLoggedIn && !isLoginRoute) return '/login';
       return null;
     },
@@ -59,10 +59,10 @@ class WeardoApp extends StatelessWidget {
         builder: (context, state, navigationShell) => MainShell(navigationShell: navigationShell),
         branches: [
           StatefulShellBranch(
-            routes: [GoRoute(path: '/clothes', builder: (context, state) => const ClothesScreen())],
+            routes: [GoRoute(path: '/catalog', builder: (context, state) => const CatalogScreen())],
           ),
           StatefulShellBranch(
-            routes: [GoRoute(path: '/generate', builder: (context, state) => const GenerateOutfitScreen())],
+            routes: [GoRoute(path: '/builder', builder: (context, state) => const BuilderScreen())],
           ),
           StatefulShellBranch(
             routes: [GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen())],
@@ -87,8 +87,8 @@ class MainShell extends StatelessWidget {
               selectedIndex: navigationShell.currentIndex,
               onDestinationSelected: (index) => navigationShell.goBranch(index),
               destinations: const [
-                NavigationDestination(icon: Icon(Icons.checkroom), label: 'Clothes'),
-                NavigationDestination(icon: Icon(Icons.auto_awesome), label: 'Generate'),
+                NavigationDestination(icon: Icon(Icons.checkroom), label: 'Catalog'),
+                NavigationDestination(icon: Icon(Icons.auto_awesome), label: 'Builder'),
                 NavigationDestination(icon: Icon(Icons.person), label: 'Profile'),
               ],
             ),

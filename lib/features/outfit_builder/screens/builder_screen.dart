@@ -8,14 +8,14 @@ import 'package:weardo_outfit_builder/features/outfit_builder/providers/saved_ou
 import 'package:weardo_outfit_builder/features/auth/providers/auth_provider.dart';
 import 'package:go_router/go_router.dart';
 
-class GenerateOutfitScreen extends StatefulWidget {
-  const GenerateOutfitScreen({super.key});
+class BuilderScreen extends StatefulWidget {
+  const BuilderScreen({super.key});
 
   @override
-  State<GenerateOutfitScreen> createState() => _GenerateOutfitScreenState();
+  State<BuilderScreen> createState() => _BuilderScreenState();
 }
 
-class _GenerateOutfitScreenState extends State<GenerateOutfitScreen> {
+class _BuilderScreenState extends State<BuilderScreen> {
   ClothingItem? selectedOuter;
   ClothingItem? selectedInner;
   ClothingItem? selectedPants;
@@ -137,7 +137,7 @@ class _GenerateOutfitScreenState extends State<GenerateOutfitScreen> {
       savedAt: DateTime.now(),
     );
 
-    await Provider.of<FavoriteProvider>(context, listen: false).addFavorite(newFavorite);
+    await Provider.of<SavedOutfitsProvider>(context, listen: false).addSavedOutfit(newFavorite);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Outfit saved! View in Profile.')),
@@ -174,7 +174,7 @@ class _GenerateOutfitScreenState extends State<GenerateOutfitScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/clothes'),
+          onPressed: () => context.go('/catalog'),
         ),
         title: const Text('Outfit'),
         actions: [

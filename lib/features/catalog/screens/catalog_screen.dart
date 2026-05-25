@@ -3,14 +3,14 @@ import 'package:provider/provider.dart';
 import 'package:weardo_outfit_builder/features/catalog/providers/catalog_provider.dart';
 import 'package:weardo_outfit_builder/models/clothing_model.dart';
 import 'package:go_router/go_router.dart';
-class ClothesScreen extends StatefulWidget {
-  const ClothesScreen({super.key});
+class CatalogScreen extends StatefulWidget {
+  const CatalogScreen({super.key});
 
   @override
-  State<ClothesScreen> createState() => _ClothesScreenState();
+  State<CatalogScreen> createState() => _CatalogScreenState();
 }
 
-class _ClothesScreenState extends State<ClothesScreen> with SingleTickerProviderStateMixin {
+class _CatalogScreenState extends State<CatalogScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -49,11 +49,11 @@ class _ClothesScreenState extends State<ClothesScreen> with SingleTickerProvider
       body: TabBarView(
         controller: _tabController,
         children: [
-          _ClothesGrid(category: 'All'),
-          _ClothesGrid(category: 'Outer'),
-          _ClothesGrid(category: 'Inner'),
-          _ClothesGrid(category: 'Pants'),
-          _ClothesGrid(category: 'Shoes'),
+          _CatalogGrid(category: 'All'),
+          _CatalogGrid(category: 'Outer'),
+          _CatalogGrid(category: 'Inner'),
+          _CatalogGrid(category: 'Pants'),
+          _CatalogGrid(category: 'Shoes'),
           _FavoritedGrid(),
         ],
       ),
@@ -65,10 +65,10 @@ class _ClothesScreenState extends State<ClothesScreen> with SingleTickerProvider
   }
 }
 
-class _ClothesGrid extends StatelessWidget {
+class _CatalogGrid extends StatelessWidget {
   final String category;
 
-  const _ClothesGrid({required this.category});
+  const _CatalogGrid({required this.category});
 
   @override
   Widget build(BuildContext context) {
@@ -111,16 +111,16 @@ class _ClothesGrid extends StatelessWidget {
       itemCount: items.length,
       itemBuilder: (ctx, index) {
         final item = items[index];
-        return _ClothingCard(item: item);
+        return _CatalogItemCard(item: item);
       },
     );
   }
 }
 
-class _ClothingCard extends StatelessWidget {
+class _CatalogItemCard extends StatelessWidget {
   final ClothingItem item;
 
-  const _ClothingCard({required this.item});
+  const _CatalogItemCard({required this.item});
 
   @override
   Widget build(BuildContext context) {
@@ -233,7 +233,7 @@ class _FavoritedGrid extends StatelessWidget {
       ),
       itemCount: items.length,
       itemBuilder: (ctx, index) {
-        return _ClothingCard(item: items[index]);
+        return _CatalogItemCard(item: items[index]);
       },
     );
   }

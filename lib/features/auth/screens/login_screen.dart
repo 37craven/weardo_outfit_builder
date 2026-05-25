@@ -32,7 +32,7 @@ class LoginScreen extends StatelessWidget {
               onPressed: () async {
                 String? error = await authProvider.login(emailController.text.trim(), passwordController.text.trim());
                 if (error == null) {
-                  if (context.mounted) context.go('/clothes');
+                  if (context.mounted) context.go('/catalog');
                 } else {
                   showError(error);
                 }

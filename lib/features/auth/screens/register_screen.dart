@@ -46,7 +46,7 @@ class RegisterScreen extends StatelessWidget {
                   passwordController.text.trim(),
                 );
                 if (error == null) {
-                  if (context.mounted) context.go('/clothes');
+                  if (context.mounted) context.go('/catalog');
                 } else {
                   showError(error);
                 }
