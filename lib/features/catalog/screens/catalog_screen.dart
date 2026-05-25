@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:weardo_outfit_builder/features/catalog/providers/catalog_provider.dart';
 import 'package:weardo_outfit_builder/models/clothing_model.dart';
 import 'package:go_router/go_router.dart';
-
 class ClothesScreen extends StatefulWidget {
   const ClothesScreen({super.key});
 
@@ -19,7 +18,7 @@ class _ClothesScreenState extends State<ClothesScreen> with SingleTickerProvider
     super.initState();
     _tabController = TabController(length: 6, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<ClothesProvider>(context, listen: false).fetchUserClothes();
+      Provider.of<CatalogProvider>(context, listen: false).fetchUserClothes();
     });
   }
 
@@ -34,13 +33,6 @@ class _ClothesScreenState extends State<ClothesScreen> with SingleTickerProvider
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Closet'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.auto_awesome),
-            tooltip: 'Generate Outfit',
-            onPressed: () => context.go('/generate'),
-          ),
-        ],
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -80,7 +72,7 @@ class _ClothesGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final clothesProvider = Provider.of<ClothesProvider>(context);
+    final clothesProvider = Provider.of<CatalogProvider>(context);
     final items = category == 'All'
         ? clothesProvider.allClothes
         : category == 'Outer'
@@ -167,7 +159,7 @@ class _ClothingCard extends StatelessWidget {
                     size: 20,
                   ),
                   onPressed: () {
-                    Provider.of<ClothesProvider>(context, listen: false).toggleFavoriteItem(item.id);
+                    Provider.of<CatalogProvider>(context, listen: false).toggleFavoriteItem(item.id);
                   },
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
@@ -197,7 +189,7 @@ class _ClothingCard extends StatelessWidget {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           TextButton(
             onPressed: () {
-              Provider.of<ClothesProvider>(context, listen: false).removeClothingItem(item.id);
+              Provider.of<CatalogProvider>(context, listen: false).removeClothingItem(item.id);
               Navigator.pop(ctx);
             },
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
@@ -211,7 +203,7 @@ class _ClothingCard extends StatelessWidget {
 class _FavoritedGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final clothesProvider = Provider.of<ClothesProvider>(context);
+    final clothesProvider = Provider.of<CatalogProvider>(context);
     final items = clothesProvider.getFavoriteItems();
 
     if (clothesProvider.isLoading) {

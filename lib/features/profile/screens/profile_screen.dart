@@ -18,7 +18,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<ClothesProvider>(context, listen: false).fetchUserClothes();
+      Provider.of<CatalogProvider>(context, listen: false).fetchUserClothes();
       Provider.of<FavoriteProvider>(context, listen: false).fetchFavorites();
     });
   }
@@ -26,7 +26,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
-    final clothesProvider = Provider.of<ClothesProvider>(context);
+    final clothesProvider = Provider.of<CatalogProvider>(context);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
@@ -58,7 +58,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildUserCard(AuthProvider authProvider, ClothesProvider clothesProvider) {
+  Widget _buildUserCard(AuthProvider authProvider, CatalogProvider clothesProvider) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -89,7 +89,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildSavedOutfits(BuildContext context) {
     final favProvider = Provider.of<FavoriteProvider>(context);
-    final clothesProvider = Provider.of<ClothesProvider>(context);
+    final clothesProvider = Provider.of<CatalogProvider>(context);
     final favorites = favProvider.favorites;
 
     if (favProvider.isLoading || clothesProvider.isLoading) {

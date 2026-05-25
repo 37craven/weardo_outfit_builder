@@ -37,13 +37,13 @@ class _GenerateOutfitScreenState extends State<GenerateOutfitScreen> {
   }
 
   Future<void> _loadAndRandomize() async {
-    final clothesProvider = Provider.of<ClothesProvider>(context, listen: false);
+    final clothesProvider = Provider.of<CatalogProvider>(context, listen: false);
     await clothesProvider.fetchUserClothes();
     _randomizeOutfit();
   }
 
   void _randomizeOutfit() {
-    final clothesProvider = Provider.of<ClothesProvider>(context, listen: false);
+    final clothesProvider = Provider.of<CatalogProvider>(context, listen: false);
     final outer = clothesProvider.getOuter();
     final inner = clothesProvider.getInner();
     final pants = clothesProvider.getPants();
@@ -103,6 +103,7 @@ class _GenerateOutfitScreenState extends State<GenerateOutfitScreen> {
                   items: items,
                   selectedItem: selectedItem,
                   onItemChanged: onChanged,
+                  locked: locked,
                 ),
         ),
       ],
@@ -192,7 +193,7 @@ class _GenerateOutfitScreenState extends State<GenerateOutfitScreen> {
           ),
         ],
       ),
-      body: Consumer<ClothesProvider>(
+      body: Consumer<CatalogProvider>(
         builder: (context, clothesProvider, child) {
           if (clothesProvider.isLoading) {
             return const Center(child: CircularProgressIndicator());
@@ -305,12 +306,14 @@ class ClothingCarousel extends StatefulWidget {
   final List<ClothingItem> items;
   final ClothingItem? selectedItem;
   final ValueChanged<ClothingItem> onItemChanged;
+  final bool locked;
 
   const ClothingCarousel({
     super.key,
     required this.items,
     required this.selectedItem,
     required this.onItemChanged,
+    this.locked = false,
   });
 
   @override
@@ -334,20 +337,22 @@ class _ClothingCarouselState extends State<ClothingCarousel> {
   @override
   void didUpdateWidget(ClothingCarousel oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (_initialized && widget.items.length == oldWidget.items.length) {
-      final newIndex = widget.selectedItem != null
-          ? widget.items.indexOf(widget.selectedItem!)
-          : -1;
-      final oldIndex = oldWidget.selectedItem != null
-          ? oldWidget.items.indexOf(oldWidget.selectedItem!)
-          : -1;
-      if (newIndex != -1 && newIndex != oldIndex) {
-        _pageController.animateToPage(
-          newIndex + 5000,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
-      }
+    if (!_initialized) return;
+
+    final newIndex = widget.selectedItem != null
+        ? widget.items.indexOf(widget.selectedItem!)
+        : -1;
+    if (newIndex == -1) return;
+
+    final currentPage = _pageController.page ?? 0;
+    final currentItemIndex = currentPage.round() % widget.items.length;
+
+    if (currentItemIndex != newIndex) {
+      _pageController.animateToPage(
+        newIndex + 5000,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
     }
   }
 
@@ -375,9 +380,12 @@ class _ClothingCarouselState extends State<ClothingCarousel> {
       children: [
         PageView.builder(
           controller: _pageController,
+          physics: widget.locked ? const NeverScrollableScrollPhysics() : null,
           itemCount: widget.items.length * 10000,
           onPageChanged: (page) {
-            widget.onItemChanged(widget.items[page % widget.items.length]);
+            if (!widget.locked) {
+              widget.onItemChanged(widget.items[page % widget.items.length]);
+            }
           },
           itemBuilder: (context, index) {
             final item = widget.items[index % widget.items.length];
@@ -451,7 +459,7 @@ class _PickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final clothesProvider = Provider.of<ClothesProvider>(context);
+    final clothesProvider = Provider.of<CatalogProvider>(context);
 
     List<ClothingItem> getItems(String category) {
       switch (category) {

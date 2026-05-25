@@ -7,6 +7,9 @@ import 'package:uuid/uuid.dart';
 import 'package:weardo_outfit_builder/models/clothing_model.dart';
 import 'package:provider/provider.dart';
 import 'package:weardo_outfit_builder/features/catalog/providers/catalog_provider.dart';
+import 'package:weardo_outfit_builder/features/catalog/widgets/bg_removal_status_banner.dart';
+import 'package:weardo_outfit_builder/services/background_removal/bg_removal_service.dart';
+import 'package:weardo_outfit_builder/services/background_removal/bg_removal_status.dart';
 import 'package:go_router/go_router.dart';
 
 class AddClothesScreen extends StatefulWidget {
@@ -18,9 +21,13 @@ class AddClothesScreen extends StatefulWidget {
 
 class _AddClothesScreenState extends State<AddClothesScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _bgRemovalService = BgRemovalService();
+
   String? _selectedCategory;
   XFile? _imageFile;
-  Uint8List? _imageBytes;       // for image preview
+  Uint8List? _imageBytes;
+  Uint8List? _processedBytes;
+  BgRemovalStatus _bgStatus = BgRemovalStatus.idle;
   bool _isUploading = false;
 
   final List<String> _categories = ['Outer', 'Inner', 'Pants', 'Shoes'];
@@ -33,9 +40,33 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
       setState(() {
         _imageFile = picked;
         _imageBytes = bytes;
+        _processedBytes = null;
+        _bgStatus = BgRemovalStatus.processing;
       });
+      _removeBackground(bytes);
     }
   }
+
+  Future<void> _removeBackground(Uint8List bytes) async {
+    try {
+      final result = await _bgRemovalService.removeBackground(bytes);
+      if (mounted) {
+        setState(() {
+          _processedBytes = result;
+          _bgStatus = BgRemovalStatus.done;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _bgStatus = BgRemovalStatus.failed;
+        });
+      }
+    }
+  }
+
+  Uint8List get _uploadBytes =>
+      _processedBytes ?? _imageBytes!;
 
   Future<void> _uploadAndSave() async {
     if (!_formKey.currentState!.validate()) return;
@@ -52,15 +83,14 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
 
     try {
       final userId = Supabase.instance.client.auth.currentUser!.id;
-      final fileName = '${const Uuid().v4()}.jpg';
+      final fileName = '${const Uuid().v4()}.png';
       final path = '$userId/$fileName';
       final storage = Supabase.instance.client.storage.from('clothes');
 
-      final bytes = await _imageFile!.readAsBytes();
       await storage.uploadBinary(
         path,
-        bytes,
-        fileOptions: const FileOptions(contentType: 'image/jpeg'),
+        _uploadBytes,
+        fileOptions: const FileOptions(contentType: 'image/png'),
       );
       final downloadUrl = storage.getPublicUrl(path);
 
@@ -75,7 +105,7 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
         createdAt: DateTime.now(),
       );
 
-      await Provider.of<ClothesProvider>(context, listen: false).addClothingItem(newItem);
+      await Provider.of<CatalogProvider>(context, listen: false).addClothingItem(newItem);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Clothing added!')));
@@ -115,12 +145,14 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
                       Text('Tap to select image'),
                     ],
                   )
-                      : _imageBytes != null
-                      ? Image.memory(_imageBytes!, fit: BoxFit.contain)
+                      : _displayBytes != null
+                      ? Image.memory(_displayBytes!, fit: BoxFit.contain)
                       : Image.file(File(_imageFile!.path), fit: BoxFit.contain),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
+              BgRemovalStatusBanner(status: _bgStatus),
+              const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
                 items: _categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
@@ -142,4 +174,6 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
       ),
     );
   }
+
+  Uint8List? get _displayBytes => _processedBytes ?? _imageBytes;
 }

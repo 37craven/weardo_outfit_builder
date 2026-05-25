@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:weardo_outfit_builder/models/clothing_model.dart';
 
-class ClothesProvider extends ChangeNotifier {
+class CatalogProvider extends ChangeNotifier {
   List<ClothingItem> _allClothes = [];
   bool _isLoading = false;
 

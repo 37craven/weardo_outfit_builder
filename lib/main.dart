@@ -29,7 +29,7 @@ class WeardoApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => ClothesProvider()),
+        ChangeNotifierProvider(create: (_) => CatalogProvider()),
         ChangeNotifierProvider(create: (_) => FavoriteProvider()),
       ],
       child: MaterialApp.router(
@@ -81,12 +81,9 @@ class MainShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hideNav = navigationShell.currentIndex == 1;
     return Scaffold(
       body: navigationShell,
-      bottomNavigationBar: hideNav
-          ? null
-          : NavigationBar(
+      bottomNavigationBar: NavigationBar(
               selectedIndex: navigationShell.currentIndex,
               onDestinationSelected: (index) => navigationShell.goBranch(index),
               destinations: const [
