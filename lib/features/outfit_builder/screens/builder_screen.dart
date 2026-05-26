@@ -66,13 +66,13 @@ class _BuilderScreenState extends State<BuilderScreen> {
     }
 
     setState(() {
-      selectedHeadwear = null;
+      selectedHeadwear = pending.headwearId != null ? find(pending.headwearId!) : null;
       selectedOuter = pending.outerId != null ? find(pending.outerId!) : null;
       selectedInner = find(pending.innerId);
       selectedBottoms = find(pending.pantsId);
       selectedShoes = find(pending.shoesId);
       _twoLayerMode = pending.outerId != null;
-      _headwearEnabled = false;
+      _headwearEnabled = pending.headwearId != null;
     });
   }
 
@@ -100,13 +100,13 @@ class _BuilderScreenState extends State<BuilderScreen> {
     }
 
     setState(() {
-      selectedHeadwear = null;
+      selectedHeadwear = outfit.headwearId != null ? find(outfit.headwearId!) : null;
       selectedOuter = outfit.outerId != null ? find(outfit.outerId!) : null;
       selectedInner = find(outfit.innerId);
       selectedBottoms = find(outfit.pantsId);
       selectedShoes = find(outfit.shoesId);
       _twoLayerMode = outfit.outerId != null;
-      _headwearEnabled = false;
+      _headwearEnabled = outfit.headwearId != null;
     });
   }
 
@@ -200,6 +200,7 @@ class _BuilderScreenState extends State<BuilderScreen> {
     final newFavorite = FavoriteOutfit(
       id: const Uuid().v4(),
       userId: userId,
+      headwearId: selectedHeadwear?.id,
       outerId: _twoLayerMode ? selectedOuter!.id : null,
       innerId: selectedInner!.id,
       pantsId: selectedBottoms!.id,

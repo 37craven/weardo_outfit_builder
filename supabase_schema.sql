@@ -61,9 +61,12 @@ CREATE POLICY "Users can delete own clothes"
 -- ============================================
 -- FAVORITES TABLE
 -- ============================================
+-- If favorites already exists, run: ALTER TABLE favorites ADD COLUMN IF NOT EXISTS headwear_id TEXT;
+
 CREATE TABLE IF NOT EXISTS favorites (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  headwear_id TEXT,
   outer_id TEXT,
   inner_id TEXT NOT NULL,
   pants_id TEXT NOT NULL,

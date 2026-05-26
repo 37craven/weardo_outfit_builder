@@ -94,21 +94,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     else if (savedProvider.savedOutfits.isEmpty)
                       _buildEmptyState()
                     else
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 8,
-                          mainAxisSpacing: 8,
-                          childAspectRatio: 1.0,
-                        ),
-                        itemCount: savedProvider.savedOutfits.length,
-                        itemBuilder: (ctx, index) {
-                          final fav = savedProvider.savedOutfits[index];
-                          return _buildOutfitCard(fav, clothesProvider, savedProvider);
-                        },
-                      ),
+                      _buildOutfitsGrid(savedProvider, clothesProvider),
                   ],
                 ),
               ),
@@ -134,7 +120,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildOutfitCard(FavoriteOutfit fav, CatalogProvider clothesProvider, SavedOutfitsProvider savedProvider) {
+  Widget _buildOutfitsGrid(SavedOutfitsProvider savedProvider, CatalogProvider clothesProvider) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final padding = 24.0 * 2;
+    final spacing = 8.0;
+    final cardWidth = (screenWidth - padding - spacing) / 2;
+    final outfits = savedProvider.savedOutfits;
+
+    double cardHeight(FavoriteOutfit f) {
+      return cardWidth + (f.headwearId != null ? cardWidth * 0.25 : 0) + 2;
+    }
+
+    final col1 = <Widget>[];
+    final col2 = <Widget>[];
+    double h1 = 0, h2 = 0;
+
+    for (var i = 0; i < outfits.length; i++) {
+      final h = cardHeight(outfits[i]);
+      final card = Padding(
+        padding: EdgeInsets.only(top: (h1 <= h2 ? col1 : col2).isEmpty ? 0 : spacing),
+        child: _buildOutfitCard(outfits[i], cardWidth, clothesProvider, savedProvider),
+      );
+      if (h1 <= h2) {
+        col1.add(card);
+        h1 += h + spacing;
+      } else {
+        col2.add(card);
+        h2 += h + spacing;
+      }
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: Column(children: col1)),
+        const SizedBox(width: 8),
+        Expanded(child: Column(children: col2)),
+      ],
+    );
+  }
+
+  Widget _buildOutfitCard(FavoriteOutfit fav, double cardWidth, CatalogProvider clothesProvider, SavedOutfitsProvider savedProvider) {
+    final headwear = fav.headwearId != null ? _findItem(fav.headwearId!, 'Headwear', clothesProvider) : null;
     final hasOuter = fav.outerId != null;
     final outer = hasOuter ? _findItem(fav.outerId!, 'Outer', clothesProvider) : null;
     final inner = _findItem(fav.innerId, 'Inner', clothesProvider);
@@ -142,43 +169,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final shoes = _findItem(fav.shoesId, 'Shoes', clothesProvider);
 
     final items = <ClothingItem>[];
+    if (headwear != null) items.add(headwear);
     if (hasOuter && outer != null) items.add(outer);
     if (inner != null) items.add(inner);
     if (bottoms != null) items.add(bottoms);
     if (shoes != null) items.add(shoes);
 
+    final hasHeadwear = headwear != null;
+    final headwearHeight = cardWidth * 0.25;
+    final cardHeight = cardWidth + (hasHeadwear ? headwearHeight : 0) + 2;
+
     final showDelete = _deleteTargetId == fav.id;
 
-    return GestureDetector(
-      onTap: () {
-        savedProvider.requestLoad(fav);
-        context.go('/builder');
-      },
-      onLongPress: () => setState(() => _deleteTargetId = showDelete ? null : fav.id),
-      child: Stack(
-        children: [
-          Container(
-            decoration: const BoxDecoration(
-              border: Border(
-                top: BorderSide(color: Colors.black, width: 1),
-                bottom: BorderSide(color: Colors.black, width: 1),
-                left: BorderSide(color: Colors.black, width: 1),
-                right: BorderSide(color: Colors.black, width: 1),
+    return SizedBox(
+      width: cardWidth,
+      height: cardHeight,
+      child: GestureDetector(
+        onTap: () {
+          savedProvider.requestLoad(fav);
+          context.go('/builder');
+        },
+        onLongPress: () => setState(() => _deleteTargetId = showDelete ? null : fav.id),
+        child: Stack(
+          children: [
+            Container(
+              decoration: const BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: Colors.black, width: 1),
+                  bottom: BorderSide(color: Colors.black, width: 1),
+                  left: BorderSide(color: Colors.black, width: 1),
+                  right: BorderSide(color: Colors.black, width: 1),
+                ),
               ),
+              child: items.isEmpty
+                  ? const Center(child: Text('Missing item'))
+                  : Column(
+                      children: [
+                        if (hasHeadwear)
+                          SizedBox(
+                            height: headwearHeight,
+                            child: Padding(
+                              padding: const EdgeInsets.all(4),
+                              child: Image.network(headwear.imageUrl, fit: BoxFit.contain, errorBuilder: (_, _, _) => const SizedBox.shrink()),
+                            ),
+                          ),
+                        SizedBox(
+                          height: cardWidth,
+                          child: _buildOrganizedOutfit(outer, inner, bottoms, shoes),
+                        ),
+                      ],
+                    ),
             ),
-            child: items.isEmpty
-                ? const Center(child: Text('Missing item'))
-                : _buildOrganizedOutfit(outer, inner, bottoms, shoes),
-          ),
-          if (showDelete)
-            GestureDetector(
-              onTap: () => savedProvider.removeSavedOutfit(fav.id),
-              child: Container(
-                color: Colors.red.withValues(alpha: 0.8),
-                child: const Center(child: Icon(Icons.delete, color: Colors.white, size: 40)),
+            if (showDelete)
+              GestureDetector(
+                onTap: () => savedProvider.removeSavedOutfit(fav.id),
+                child: Container(
+                  color: Colors.red.withValues(alpha: 0.8),
+                  child: const Center(child: Icon(Icons.delete, color: Colors.white, size: 40)),
+                ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -238,6 +289,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   ClothingItem? _findItem(String id, String category, CatalogProvider provider) {
     final list = switch (category) {
+      'Headwear' => provider.getHeadwear(),
       'Outer' => provider.getOuter(),
       'Inner' => provider.getInner(),
       'Bottoms' => provider.getBottoms(),
