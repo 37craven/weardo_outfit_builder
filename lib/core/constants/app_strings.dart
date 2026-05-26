@@ -6,12 +6,13 @@ class AppConstants {
   static const double referencePixels = 200.0;
 
   // Category strings
-  static const String categoryOuter = 'Outer';
-  static const String categoryInner = 'Inner';
-  static const String categoryPants = 'Pants';
-  static const String categoryShoes = 'Shoes';
+  static const String categoryHeadwear = 'Headwear';
+  static const String categoryOuterTops = 'Outer Tops';
+  static const String categoryInnerTops = 'Inner Tops';
+  static const String categoryBottoms = 'Bottoms';
+  static const String categoryFootwear = 'Footwear';
 
-  static const List<String> allCategories = [categoryOuter, categoryInner, categoryPants, categoryShoes];
+  static const List<String> allCategories = [categoryHeadwear, categoryOuterTops, categoryInnerTops, categoryBottoms, categoryFootwear];
 
   // Supabase table names
   static const String collectionUsers = 'users';

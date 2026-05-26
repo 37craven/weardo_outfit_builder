@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:weardo_outfit_builder/features/auth/providers/auth_provider.dart';
 import 'package:weardo_outfit_builder/features/catalog/providers/catalog_provider.dart';
 import 'package:weardo_outfit_builder/features/outfit_builder/providers/saved_outfits_provider.dart';
@@ -11,6 +12,7 @@ import 'package:weardo_outfit_builder/features/catalog/screens/catalog_screen.da
 import 'package:weardo_outfit_builder/features/outfit_builder/screens/builder_screen.dart';
 import 'package:weardo_outfit_builder/features/catalog/screens/add_clothing_screen.dart';
 import 'package:weardo_outfit_builder/features/profile/screens/profile_screen.dart';
+import 'package:weardo_outfit_builder/features/outfit_builder/widgets/nav_bar.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,7 +36,21 @@ class WeardoApp extends StatelessWidget {
       ],
       child: MaterialApp.router(
         title: 'WEARDO',
-        theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.purple)),
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.white,
+            brightness: Brightness.light,
+            primary: const Color(0xFF1C1C1C),
+            onPrimary: const Color(0xFFFFFFFF),
+            surface: const Color(0xFFFFFFFF),
+            onSurface: const Color(0xFF1C1C1C),
+          ),
+          scaffoldBackgroundColor: const Color(0xFFFFFFFF),
+          textTheme: GoogleFonts.jetBrainsMonoTextTheme().apply(
+            bodyColor: const Color(0xFF1C1C1C),
+            displayColor: const Color(0xFF1C1C1C),
+          ),
+        ),
         routerConfig: _router,
         debugShowCheckedModeBanner: false,
       ),
@@ -72,26 +88,4 @@ class WeardoApp extends StatelessWidget {
       GoRoute(path: '/add-clothes', builder: (context, state) => const AddClothesScreen()),
     ],
   );
-}
-
-class MainShell extends StatelessWidget {
-  final StatefulNavigationShell navigationShell;
-
-  const MainShell({super.key, required this.navigationShell});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: navigationShell,
-      bottomNavigationBar: NavigationBar(
-              selectedIndex: navigationShell.currentIndex,
-              onDestinationSelected: (index) => navigationShell.goBranch(index),
-              destinations: const [
-                NavigationDestination(icon: Icon(Icons.checkroom), label: 'Catalog'),
-                NavigationDestination(icon: Icon(Icons.auto_awesome), label: 'Builder'),
-                NavigationDestination(icon: Icon(Icons.person), label: 'Profile'),
-              ],
-            ),
-    );
-  }
 }

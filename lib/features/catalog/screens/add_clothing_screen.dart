@@ -22,6 +22,7 @@ class AddClothesScreen extends StatefulWidget {
 class _AddClothesScreenState extends State<AddClothesScreen> {
   final _formKey = GlobalKey<FormState>();
   final _bgRemovalService = BgRemovalService();
+  final _nameController = TextEditingController();
 
   String? _selectedCategory;
   XFile? _imageFile;
@@ -30,7 +31,7 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
   BgRemovalStatus _bgStatus = BgRemovalStatus.idle;
   bool _isUploading = false;
 
-  final List<String> _categories = ['Outer', 'Inner', 'Pants', 'Shoes'];
+  final List<String> _categories = ['Headwear', 'Outer Tops', 'Inner Tops', 'Bottoms', 'Footwear'];
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
@@ -78,6 +79,10 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Select a category')));
       return;
     }
+    if (_nameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a name')));
+      return;
+    }
 
     setState(() => _isUploading = true);
 
@@ -102,6 +107,7 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
         heightInches: defaultSize,
         widthInches: defaultSize,
         category: _selectedCategory!,
+        name: _nameController.text.trim(),
         createdAt: DateTime.now(),
       );
 
@@ -153,6 +159,12 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
               const SizedBox(height: 12),
               BgRemovalStatusBanner(status: _bgStatus),
               const SizedBox(height: 8),
+              TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(labelText: 'Name', border: OutlineInputBorder()),
+                validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter a name' : null,
+              ),
+              const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
                 items: _categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
@@ -173,6 +185,12 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
   }
 
   Uint8List? get _displayBytes => _processedBytes ?? _imageBytes;

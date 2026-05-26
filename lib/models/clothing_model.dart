@@ -5,6 +5,7 @@ class ClothingItem {
   final double heightInches;
   final double widthInches;
   final String category;
+  final String name;
   final DateTime createdAt;
   final bool isFavorited;
 
@@ -15,6 +16,7 @@ class ClothingItem {
     required this.heightInches,
     required this.widthInches,
     required this.category,
+    required this.name,
     required this.createdAt,
     this.isFavorited = false,
   });
@@ -27,6 +29,7 @@ class ClothingItem {
       heightInches: heightInches,
       widthInches: widthInches,
       category: category,
+      name: name,
       createdAt: createdAt,
       isFavorited: isFavorited ?? this.isFavorited,
     );
@@ -40,6 +43,7 @@ class ClothingItem {
       'height_inches': heightInches,
       'width_inches': widthInches,
       'category': category,
+      'name': name,
       'created_at': createdAt.toIso8601String(),
       'is_favorited': isFavorited,
     };
@@ -53,6 +57,7 @@ class ClothingItem {
       heightInches: (map['height_inches'] as num).toDouble(),
       widthInches: (map['width_inches'] as num).toDouble(),
       category: map['category'],
+      name: map['name'] ?? '',
       createdAt: DateTime.parse(map['created_at']),
       isFavorited: map['is_favorited'] ?? false,
     );
