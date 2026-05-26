@@ -72,7 +72,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           Column(
                             children: [
-                              Text(name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                              Text('@$name', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
                               Text(email, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
                             ],
                           ),
