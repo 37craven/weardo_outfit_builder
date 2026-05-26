@@ -5,6 +5,8 @@ import 'package:weardo_outfit_builder/models/clothing_model.dart';
 import 'package:weardo_outfit_builder/models/outfit_model.dart';
 import 'package:weardo_outfit_builder/features/catalog/providers/catalog_provider.dart';
 import 'package:weardo_outfit_builder/features/outfit_builder/providers/saved_outfits_provider.dart';
+import 'package:weardo_outfit_builder/widgets/floating_action_button.dart';
+import 'package:weardo_outfit_builder/widgets/button.dart';
 import 'package:weardo_outfit_builder/features/auth/providers/auth_provider.dart';
 import 'package:go_router/go_router.dart';
 
@@ -16,48 +18,119 @@ class BuilderScreen extends StatefulWidget {
 }
 
 class _BuilderScreenState extends State<BuilderScreen> {
+  ClothingItem? selectedHeadwear;
   ClothingItem? selectedOuter;
   ClothingItem? selectedInner;
-  ClothingItem? selectedPants;
+  ClothingItem? selectedBottoms;
   ClothingItem? selectedShoes;
 
+  bool headwearLocked = false;
   bool outerLocked = false;
   bool innerLocked = false;
-  bool pantsLocked = false;
+  bool bottomsLocked = false;
   bool shoesLocked = false;
 
   bool _twoLayerMode = false;
+  bool _headwearEnabled = false;
+
+  SavedOutfitsProvider? _savedProvider;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _savedProvider = Provider.of<SavedOutfitsProvider>(context, listen: false);
+      _savedProvider!.addListener(_onSavedChanged);
       _loadAndRandomize();
+    });
+  }
+
+  @override
+  void dispose() {
+    _savedProvider?.removeListener(_onSavedChanged);
+    super.dispose();
+  }
+
+  void _onSavedChanged() {
+    final pending = _savedProvider?.pendingLoad;
+    if (pending == null) return;
+    _savedProvider?.clearPendingLoad();
+
+    final clothesProvider = Provider.of<CatalogProvider>(context, listen: false);
+    ClothingItem? find(String id) {
+      try {
+        return clothesProvider.allClothes.firstWhere((c) => c.id == id);
+      } catch (_) {
+        return null;
+      }
+    }
+
+    setState(() {
+      selectedHeadwear = null;
+      selectedOuter = pending.outerId != null ? find(pending.outerId!) : null;
+      selectedInner = find(pending.innerId);
+      selectedBottoms = find(pending.pantsId);
+      selectedShoes = find(pending.shoesId);
+      _twoLayerMode = pending.outerId != null;
+      _headwearEnabled = false;
     });
   }
 
   Future<void> _loadAndRandomize() async {
     final clothesProvider = Provider.of<CatalogProvider>(context, listen: false);
     await clothesProvider.fetchUserClothes();
-    _randomizeOutfit();
+
+    final saved = Provider.of<SavedOutfitsProvider>(context, listen: false);
+    final pending = saved.pendingLoad;
+    if (pending != null) {
+      _loadFromSaved(pending, clothesProvider);
+      saved.clearPendingLoad();
+    } else {
+      _randomizeOutfit();
+    }
+  }
+
+  void _loadFromSaved(FavoriteOutfit outfit, CatalogProvider provider) {
+    ClothingItem? find(String id) {
+      try {
+        return provider.allClothes.firstWhere((c) => c.id == id);
+      } catch (_) {
+        return null;
+      }
+    }
+
+    setState(() {
+      selectedHeadwear = null;
+      selectedOuter = outfit.outerId != null ? find(outfit.outerId!) : null;
+      selectedInner = find(outfit.innerId);
+      selectedBottoms = find(outfit.pantsId);
+      selectedShoes = find(outfit.shoesId);
+      _twoLayerMode = outfit.outerId != null;
+      _headwearEnabled = false;
+    });
   }
 
   void _randomizeOutfit() {
     final clothesProvider = Provider.of<CatalogProvider>(context, listen: false);
     final outer = clothesProvider.getOuter();
     final inner = clothesProvider.getInner();
-    final pants = clothesProvider.getPants();
+    final pants = clothesProvider.getBottoms();
     final shoes = clothesProvider.getShoes();
 
+    final headwear = clothesProvider.getHeadwear();
+
     setState(() {
+      if (_headwearEnabled && !headwearLocked && headwear.isNotEmpty) {
+        selectedHeadwear = (headwear..shuffle()).first;
+      }
       if (_twoLayerMode && !outerLocked && outer.isNotEmpty) {
         selectedOuter = (outer..shuffle()).first;
       }
       if (!innerLocked && inner.isNotEmpty) {
         selectedInner = (inner..shuffle()).first;
       }
-      if (!pantsLocked && pants.isNotEmpty) {
-        selectedPants = (pants..shuffle()).first;
+      if (!bottomsLocked && pants.isNotEmpty) {
+        selectedBottoms = (pants..shuffle()).first;
       }
       if (!shoesLocked && shoes.isNotEmpty) {
         selectedShoes = (shoes..shuffle()).first;
@@ -66,54 +139,51 @@ class _BuilderScreenState extends State<BuilderScreen> {
   }
 
   Widget _buildCarouselSection({
-    required String title,
     required List<ClothingItem> items,
     required ClothingItem? selectedItem,
     required ValueChanged<ClothingItem> onChanged,
     required bool locked,
     required VoidCallback onLockToggle,
+    required double height,
+    double viewportFraction = 0.55,
   }) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Center(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-              SizedBox(
-                width: 36,
-                height: 36,
-                child: IconButton(
-                  padding: EdgeInsets.zero,
-                  icon: Icon(locked ? Icons.lock : Icons.lock_open, size: 18),
-                  onPressed: onLockToggle,
-                ),
-              ),
-            ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          IconButton(
+            icon: Icon(locked ? Icons.lock : Icons.lock_open, size: 18, color: Colors.black),
+            onPressed: onLockToggle,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
-        ),
-        SizedBox(
-          height: 140,
-          child: items.isEmpty
-              ? Center(
-                  child: Text('No $title yet', style: const TextStyle(color: Colors.grey)),
-                )
-              : ClothingCarousel(
-                  items: items,
-                  selectedItem: selectedItem,
-                  onItemChanged: onChanged,
-                  locked: locked,
-                ),
-        ),
-      ],
+          const SizedBox(width: 4),
+          Expanded(
+            child: SizedBox(
+              height: height,
+              child: items.isEmpty
+                  ? Center(
+                      child: Text('No items', style: const TextStyle(color: Colors.grey)),
+                    )
+                  : ClothingCarousel(
+                      items: items,
+                      selectedItem: selectedItem,
+                      onItemChanged: onChanged,
+                      locked: locked,
+                      viewportFraction: viewportFraction,
+                    ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Future<void> _saveOutfit() async {
     final missing = <String>[];
     if (selectedInner == null) missing.add('Inner');
-    if (selectedPants == null) missing.add('Pants');
+    if (selectedBottoms == null) missing.add('Bottoms');
     if (selectedShoes == null) missing.add('Shoes');
     if (_twoLayerMode && selectedOuter == null) missing.add('Outer');
 
@@ -132,7 +202,7 @@ class _BuilderScreenState extends State<BuilderScreen> {
       userId: userId,
       outerId: _twoLayerMode ? selectedOuter!.id : null,
       innerId: selectedInner!.id,
-      pantsId: selectedPants!.id,
+      pantsId: selectedBottoms!.id,
       shoesId: selectedShoes!.id,
       savedAt: DateTime.now(),
     );
@@ -146,20 +216,24 @@ class _BuilderScreenState extends State<BuilderScreen> {
   }
 
   void _showItemPicker(BuildContext context) {
-    final categories = ['Outer', 'Inner', 'Pants', 'Shoes'];
+    final categories = ['Outer', 'Inner', 'Bottoms', 'Shoes'];
     if (!_twoLayerMode) categories.remove('Outer');
+    if (_headwearEnabled) categories.insert(0, 'Headwear');
 
     showModalBottomSheet(
       context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(),
       builder: (ctx) => _PickerSheet(
         categories: categories,
         onPicked: (category, item) {
           Navigator.pop(ctx);
           setState(() {
             switch (category) {
+              case 'Headwear': selectedHeadwear = item; break;
               case 'Outer': selectedOuter = item; break;
               case 'Inner': selectedInner = item; break;
-              case 'Pants': selectedPants = item; break;
+              case 'Bottoms': selectedBottoms = item; break;
               case 'Shoes': selectedShoes = item; break;
             }
           });
@@ -168,132 +242,163 @@ class _BuilderScreenState extends State<BuilderScreen> {
     );
   }
 
+  void _toggleLayers() {
+    setState(() => _twoLayerMode = !_twoLayerMode);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(_twoLayerMode ? '2-Layer mode enabled' : '1-Layer mode enabled'),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
+  void _toggleHeadwear() {
+    setState(() => _headwearEnabled = !_headwearEnabled);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(_headwearEnabled ? 'Headwear shown' : 'Headwear hidden'),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/catalog'),
-        ),
-        title: const Text('Outfit'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(_twoLayerMode ? '2 Layers' : '1 Layer', style: const TextStyle(fontSize: 13)),
-                Switch(
-                  value: _twoLayerMode,
-                  onChanged: (v) => setState(() => _twoLayerMode = v),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
       body: Consumer<CatalogProvider>(
         builder: (context, clothesProvider, child) {
-          if (clothesProvider.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
           final hasOuter = clothesProvider.getOuter().isNotEmpty;
           final hasInner = clothesProvider.getInner().isNotEmpty;
-          final hasPants = clothesProvider.getPants().isNotEmpty;
+          final hasBottoms = clothesProvider.getBottoms().isNotEmpty;
           final hasShoes = clothesProvider.getShoes().isNotEmpty;
-          final canGenerate = hasInner && hasPants && hasShoes && (!_twoLayerMode || hasOuter);
-
-          if (!canGenerate) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text('Missing clothing items.'),
-                  const SizedBox(height: 16),
-                  if (!hasOuter) const Text('• Add at least one outer'),
-                  if (!hasInner) const Text('• Add at least one inner'),
-                  if (!hasPants) const Text('• Add at least one pair of pants'),
-                  if (!hasShoes) const Text('• Add at least one pair of shoes'),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: () => context.go('/add-clothes'),
-                    child: const Text('Add Clothes'),
-                  ),
-                ],
-              ),
-            );
-          }
+          final canGenerate = hasInner && hasBottoms && hasShoes && (!_twoLayerMode || hasOuter);
 
           return Stack(
             children: [
-              SingleChildScrollView(
-                padding: const EdgeInsets.only(bottom: 100),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 48, 24, 0),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (_twoLayerMode)
-                      _buildCarouselSection(
-                        title: 'Outer',
-                        items: clothesProvider.getOuter(),
-                        selectedItem: selectedOuter,
-                        onChanged: (item) => setState(() => selectedOuter = item),
-                        locked: outerLocked,
-                        onLockToggle: () => setState(() => outerLocked = !outerLocked),
+                    const Text('Builder', style: TextStyle(fontSize: 32)),
+                    const SizedBox(height: 24),
+                    Expanded(
+                      child: clothesProvider.isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : canGenerate
+                              ? SingleChildScrollView(
+                                  padding: const EdgeInsets.only(bottom: 100),
+                                  child: Column(
+                                    children: [
+                                      if (_headwearEnabled)
+                                        _buildCarouselSection(
+                                          items: clothesProvider.getHeadwear(),
+                                          selectedItem: selectedHeadwear,
+                                          onChanged: (item) => setState(() => selectedHeadwear = item),
+                                          locked: headwearLocked,
+                                          onLockToggle: () => setState(() => headwearLocked = !headwearLocked),
+                                          height: 90,
+                                          viewportFraction: 0.6,
+                                        ),
+                                      if (_twoLayerMode)
+                                        _buildCarouselSection(
+                                          items: clothesProvider.getOuter(),
+                                          selectedItem: selectedOuter,
+                                          onChanged: (item) => setState(() => selectedOuter = item),
+                                          locked: outerLocked,
+                                          onLockToggle: () => setState(() => outerLocked = !outerLocked),
+                                          height: 160,
+                                          viewportFraction: 1.0,
+                                        ),
+                                      _buildCarouselSection(
+                                        items: clothesProvider.getInner(),
+                                        selectedItem: selectedInner,
+                                        onChanged: (item) => setState(() => selectedInner = item),
+                                        locked: innerLocked,
+                                        onLockToggle: () => setState(() => innerLocked = !innerLocked),
+                                        height: 160,
+                                        viewportFraction: 0.8,
+                                      ),
+                                      _buildCarouselSection(
+                                        items: clothesProvider.getBottoms(),
+                                        selectedItem: selectedBottoms,
+                                        onChanged: (item) => setState(() => selectedBottoms = item),
+                                        locked: bottomsLocked,
+                                        onLockToggle: () => setState(() => bottomsLocked = !bottomsLocked),
+                                        height: 160,
+                                        viewportFraction: 1.0,
+                                      ),
+                                      _buildCarouselSection(
+                                        items: clothesProvider.getShoes(),
+                                        selectedItem: selectedShoes,
+                                        onChanged: (item) => setState(() => selectedShoes = item),
+                                        locked: shoesLocked,
+                                        onLockToggle: () => setState(() => shoesLocked = !shoesLocked),
+                                        height: 90,
+                                        viewportFraction: 0.6,
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Text('Missing clothing items.'),
+                                      const SizedBox(height: 16),
+                                      if (_headwearEnabled && !clothesProvider.getHeadwear().isNotEmpty)
+                                        const Text('\u2022 Add at least one Headwear'),
+                                      if (_twoLayerMode && !hasOuter) const Text('\u2022 Add at least one Outer Top'),
+                                      if (!hasInner) const Text('\u2022 Add at least one Inner Top'),
+                                      if (!hasBottoms) const Text('\u2022 Add at least one Bottom'),
+                                      if (!hasShoes) const Text('\u2022 Add at least one pair of Footwear'),
+                                      const SizedBox(height: 24),
+                                      PrimaryButton(
+                                        label: 'Add Clothes',
+                                        width: 200,
+                                        onPressed: () => context.go('/add-clothes'),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                    ),
+                  ],
+                ),
+              ),
+              if (canGenerate)
+                Positioned(
+                  right: 24,
+                  bottom: 24,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AppFloatingActionButton(
+                        icon: Icons.add,
+                        onPressed: () => _showItemPicker(context),
                       ),
-                    _buildCarouselSection(
-                      title: 'Inner',
-                      items: clothesProvider.getInner(),
-                      selectedItem: selectedInner,
-                      onChanged: (item) => setState(() => selectedInner = item),
-                      locked: innerLocked,
-                      onLockToggle: () => setState(() => innerLocked = !innerLocked),
-                    ),
-                    _buildCarouselSection(
-                      title: 'Pants',
-                      items: clothesProvider.getPants(),
-                      selectedItem: selectedPants,
-                      onChanged: (item) => setState(() => selectedPants = item),
-                      locked: pantsLocked,
-                      onLockToggle: () => setState(() => pantsLocked = !pantsLocked),
-                    ),
-                    _buildCarouselSection(
-                      title: 'Shoes',
-                      items: clothesProvider.getShoes(),
-                      selectedItem: selectedShoes,
-                      onChanged: (item) => setState(() => selectedShoes = item),
-                      locked: shoesLocked,
-                      onLockToggle: () => setState(() => shoesLocked = !shoesLocked),
-                    ),
-                  ],
+                      const SizedBox(height: 12),
+                      AppFloatingActionButton(
+                        icon: Icons.shuffle,
+                        onPressed: _randomizeOutfit,
+                      ),
+                      const SizedBox(height: 12),
+                      AppFloatingActionButton(
+                        icon: Icons.favorite_border,
+                        onPressed: _saveOutfit,
+                      ),
+                      const SizedBox(height: 12),
+                      AppFloatingActionButton(
+                        text: _twoLayerMode ? '2' : '1',
+                        onPressed: _toggleLayers,
+                      ),
+                      const SizedBox(height: 12),
+                      AppFloatingActionButton(
+                        text: "H",
+                        onPressed: _toggleHeadwear,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              Positioned(
-                right: 16,
-                bottom: 16,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    FloatingActionButton.small(
-                      heroTag: 'add',
-                      onPressed: () => _showItemPicker(context),
-                      child: const Icon(Icons.add),
-                    ),
-                    const SizedBox(height: 12),
-                    FloatingActionButton.small(
-                      heroTag: 'shuffle',
-                      onPressed: _randomizeOutfit,
-                      child: const Icon(Icons.shuffle),
-                    ),
-                    const SizedBox(height: 12),
-                    FloatingActionButton(
-                      heroTag: 'save',
-                      onPressed: _saveOutfit,
-                      child: const Icon(Icons.favorite_border),
-                    ),
-                  ],
-                ),
-              ),
             ],
           );
         },
@@ -307,6 +412,7 @@ class ClothingCarousel extends StatefulWidget {
   final ClothingItem? selectedItem;
   final ValueChanged<ClothingItem> onItemChanged;
   final bool locked;
+  final double viewportFraction;
 
   const ClothingCarousel({
     super.key,
@@ -314,6 +420,7 @@ class ClothingCarousel extends StatefulWidget {
     required this.selectedItem,
     required this.onItemChanged,
     this.locked = false,
+    this.viewportFraction = 0.55,
   });
 
   @override
@@ -327,7 +434,7 @@ class _ClothingCarouselState extends State<ClothingCarousel> {
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(viewportFraction: 0.55);
+    _pageController = PageController(viewportFraction: widget.viewportFraction);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _syncToSelected();
       _initialized = true;
@@ -348,8 +455,12 @@ class _ClothingCarouselState extends State<ClothingCarousel> {
     final currentItemIndex = currentPage.round() % widget.items.length;
 
     if (currentItemIndex != newIndex) {
+      int targetPage = newIndex + 5000;
+      if (targetPage < (_pageController.page ?? 0)) {
+        targetPage += widget.items.length;
+      }
       _pageController.animateToPage(
-        newIndex + 5000,
+        targetPage,
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
@@ -389,28 +500,28 @@ class _ClothingCarouselState extends State<ClothingCarousel> {
           },
           itemBuilder: (context, index) {
             final item = widget.items[index % widget.items.length];
-            return AnimatedBuilder(
-              animation: _pageController,
-              builder: (context, child) {
-                double scale = 1.0;
-                if (_pageController.position.hasContentDimensions) {
-                  final pos = _pageController.page ?? index.toDouble();
-                  final diff = (pos - index).abs();
-                  scale = 1.0 - (diff * 0.2);
-                  scale = scale.clamp(0.8, 1.0);
-                }
-                return Transform.scale(
-                  scale: scale,
-                  child: child,
-                );
-              },
-              child: Center(
+            return Center(
+              child: AnimatedBuilder(
+                animation: _pageController,
+                builder: (context, child) {
+                  double scale = 1.0;
+                  if (_pageController.position.hasContentDimensions) {
+                    final pos = _pageController.page ?? index.toDouble();
+                    final diff = (pos - index).abs();
+                    scale = 1.0 - (diff * 0.2);
+                    scale = scale.clamp(0.8, 1.0);
+                  }
+                  return Transform.scale(
+                    scale: scale,
+                    child: child,
+                  );
+                },
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: Image.network(
                     item.imageUrl,
                     fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 50),
+                    errorBuilder: (_, _, _) => const Icon(Icons.broken_image, size: 50),
                   ),
                 ),
               ),
@@ -463,9 +574,10 @@ class _PickerSheet extends StatelessWidget {
 
     List<ClothingItem> getItems(String category) {
       switch (category) {
+        case 'Headwear': return clothesProvider.getHeadwear();
         case 'Outer': return clothesProvider.getOuter();
         case 'Inner': return clothesProvider.getInner();
-        case 'Pants': return clothesProvider.getPants();
+        case 'Bottoms': return clothesProvider.getBottoms();
         case 'Shoes': return clothesProvider.getShoes();
         default: return [];
       }
@@ -477,9 +589,23 @@ class _PickerSheet extends StatelessWidget {
         length: categories.length,
         child: Column(
           children: [
-            TabBar(
-              isScrollable: true,
-              tabs: categories.map((c) => Tab(text: c)).toList(),
+            Container(
+              decoration: const BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: Colors.black, width: 1),
+                ),
+              ),
+              child: TabBar(
+                isScrollable: true,
+                labelColor: Colors.black,
+                unselectedLabelColor: Colors.grey,
+                indicator: const BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: Colors.black, width: 2),
+                  ),
+                ),
+                tabs: categories.map((c) => Tab(text: c)).toList(),
+              ),
             ),
             Expanded(
               child: TabBarView(
@@ -492,9 +618,25 @@ class _PickerSheet extends StatelessWidget {
                         children: [
                           const Text('No items in this category.'),
                           const SizedBox(height: 12),
-                          ElevatedButton(
-                            onPressed: () => Navigator.pushNamed(context, '/add-clothes'),
-                            child: const Text('Add New'),
+                          GestureDetector(
+                            onTap: () => Navigator.pushNamed(context, '/add-clothes'),
+                            child: Container(
+                              width: 120,
+                              height: 36,
+                              decoration: const BoxDecoration(
+                                color: Colors.black,
+                                border: Border(
+                                  top: BorderSide(color: Colors.black, width: 1),
+                                  bottom: BorderSide(color: Colors.black, width: 1),
+                                  left: BorderSide(color: Colors.black, width: 1),
+                                  right: BorderSide(color: Colors.black, width: 1),
+                                ),
+                              ),
+                              child: const Center(
+                                child: Text('Add New',
+                                    style: TextStyle(color: Colors.white, fontSize: 14)),
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -513,18 +655,43 @@ class _PickerSheet extends StatelessWidget {
                       final item = items[index];
                       return GestureDetector(
                         onTap: () => onPicked(category, item),
-                        child: Card(
-                          child: Column(
-                            children: [
-                              Expanded(
-                                child: ClipRRect(
-                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                                  child: Image.network(item.imageUrl, fit: BoxFit.contain),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(
+                              child: Container(
+                                decoration: const BoxDecoration(
+                                  border: Border(
+                                    top: BorderSide(color: Colors.black, width: 1),
+                                    bottom: BorderSide(color: Colors.black, width: 1),
+                                    left: BorderSide(color: Colors.black, width: 1),
+                                    right: BorderSide(color: Colors.black, width: 1),
+                                  ),
+                                ),
+                                child: ClipRect(
+                                  child: Image.network(
+                                    item.imageUrl,
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (_, _, _) =>
+                                        const Icon(Icons.broken_image, size: 50),
+                                  ),
                                 ),
                               ),
-
-                            ],
-                          ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              item.name,
+                              style: const TextStyle(
+                                  fontSize: 14, fontWeight: FontWeight.bold),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              item.category,
+                              style:
+                                  TextStyle(fontSize: 10, color: Colors.grey[500]),
+                            ),
+                          ],
                         ),
                       );
                     },

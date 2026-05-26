@@ -12,8 +12,6 @@ class AppConstants {
   static const String categoryBottoms = 'Bottoms';
   static const String categoryFootwear = 'Footwear';
 
-  static const List<String> allCategories = [categoryHeadwear, categoryOuterTops, categoryInnerTops, categoryBottoms, categoryFootwear];
-
   // Supabase table names
   static const String collectionUsers = 'users';
   static const String collectionClothes = 'clothes';

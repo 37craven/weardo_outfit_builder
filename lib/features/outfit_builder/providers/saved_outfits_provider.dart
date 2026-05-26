@@ -5,9 +5,20 @@ import 'package:weardo_outfit_builder/models/outfit_model.dart';
 class SavedOutfitsProvider extends ChangeNotifier {
   List<FavoriteOutfit> _savedOutfits = [];
   bool _isLoading = false;
+  FavoriteOutfit? _pendingLoad;
 
   List<FavoriteOutfit> get savedOutfits => _savedOutfits;
   bool get isLoading => _isLoading;
+  FavoriteOutfit? get pendingLoad => _pendingLoad;
+
+  void requestLoad(FavoriteOutfit outfit) {
+    _pendingLoad = outfit;
+    notifyListeners();
+  }
+
+  void clearPendingLoad() {
+    _pendingLoad = null;
+  }
 
   Future<void> fetchSavedOutfits() async {
     final userId = Supabase.instance.client.auth.currentUser?.id;
