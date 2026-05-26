@@ -46,8 +46,20 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<String?> login(String email, String password) async {
+  Future<String?> login(String usernameOrEmail, String password) async {
     try {
+      String email;
+      if (usernameOrEmail.contains('@')) {
+        email = usernameOrEmail;
+      } else {
+        final result = await Supabase.instance.client
+            .from('users')
+            .select('email')
+            .eq('username', usernameOrEmail)
+            .maybeSingle();
+        if (result == null) return 'User not found';
+        email = result['email'] as String;
+      }
       await _auth.signInWithPassword(email: email, password: password);
       return null;
     } on AuthException catch (e) {
@@ -55,12 +67,18 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<String?> register(String email, String firstName, String lastName, String password) async {
+  Future<String?> register(String email, String username, String password) async {
     try {
+      final existing = await Supabase.instance.client
+          .from('users')
+          .select('id')
+          .eq('username', username)
+          .maybeSingle();
+      if (existing != null) return 'Username already taken';
+
       final response = await _auth.signUp(email: email, password: password);
       final user = response.user;
       if (user != null) {
-        final username = '$firstName $lastName';
         await Supabase.instance.client.from('users').insert({
           'id': user.id,
           'username': username,

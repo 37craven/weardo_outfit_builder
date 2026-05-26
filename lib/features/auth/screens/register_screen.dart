@@ -14,8 +14,7 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
-  final _firstNameController = TextEditingController();
-  final _lastNameController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
   bool _obscurePassword = true;
@@ -24,8 +23,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void dispose() {
     _emailController.dispose();
-    _firstNameController.dispose();
-    _lastNameController.dispose();
+    _usernameController.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
     super.dispose();
@@ -66,28 +64,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                        Row(
-                          spacing: 12,
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: _firstNameController,
-                                decoration: const InputDecoration(
-                                  labelText: 'First Name',
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: TextField(
-                                controller: _lastNameController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Last Name',
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
+                      TextField(controller: _usernameController, decoration: const InputDecoration(labelText: 'Username')),
+                      const SizedBox(height: 20),
                       TextField(controller: _emailController, decoration: const InputDecoration(labelText: 'Email')),
 
                       const SizedBox(height: 20),
@@ -134,8 +112,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       }
                       String? error = await authProvider.register(
                         _emailController.text.trim(),
-                        _firstNameController.text.trim(),
-                        _lastNameController.text.trim(),
+                        _usernameController.text.trim(),
                         _passwordController.text.trim(),
                       );
                       if (error == null) {

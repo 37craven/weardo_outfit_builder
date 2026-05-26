@@ -14,13 +14,13 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController();
+  final _usernameOrEmailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _usernameOrEmailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -57,7 +57,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      TextField(controller: _emailController, decoration: const InputDecoration(labelText: 'Email')),
+                      TextField(controller: _usernameOrEmailController, decoration: const InputDecoration(labelText: 'Username or Email')),
                       const SizedBox(height: 20),
                       TextField(
                         controller: _passwordController,
@@ -90,7 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     label: 'Login',
                     onPressed: () async {
                       String? error = await authProvider.login(
-                        _emailController.text.trim(),
+                        _usernameOrEmailController.text.trim(),
                         _passwordController.text.trim(),
                       );
                       if (error == null) {
