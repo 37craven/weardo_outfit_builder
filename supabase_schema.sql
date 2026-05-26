@@ -1,8 +1,9 @@
 -- Run this in your Supabase SQL Editor (Dashboard > SQL Editor)
 -- If you already ran a previous version, run this first to migrate:
 --   ALTER TABLE clothes ADD COLUMN IF NOT EXISTS is_favorited BOOLEAN DEFAULT false;
+--   ALTER TABLE clothes ADD COLUMN IF NOT EXISTS name TEXT NOT NULL DEFAULT '';
 --   ALTER TABLE clothes DROP CONSTRAINT IF EXISTS clothes_category_check;
---   ALTER TABLE clothes ADD CONSTRAINT clothes_category_check CHECK (category IN ('Outer', 'Inner', 'Pants', 'Shoes'));
+--   ALTER TABLE clothes ADD CONSTRAINT clothes_category_check CHECK (category IN ('Headwear', 'Outer Tops', 'Inner Tops', 'Bottoms', 'Footwear'));
 --   ALTER TABLE favorites ADD COLUMN IF NOT EXISTS outer_id TEXT;
 --   ALTER TABLE favorites ADD COLUMN IF NOT EXISTS inner_id TEXT;
 --   UPDATE favorites SET inner_id = shirt_id WHERE inner_id IS NULL;
@@ -37,7 +38,8 @@ CREATE TABLE IF NOT EXISTS clothes (
   image_url TEXT NOT NULL,
   height_inches DOUBLE PRECISION NOT NULL,
   width_inches DOUBLE PRECISION NOT NULL,
-  category TEXT NOT NULL CHECK (category IN ('Outer', 'Inner', 'Pants', 'Shoes')),
+  category TEXT NOT NULL CHECK (category IN ('Headwear', 'Outer Tops', 'Inner Tops', 'Bottoms', 'Footwear')),
+  name TEXT NOT NULL DEFAULT '',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   is_favorited BOOLEAN DEFAULT false
 );

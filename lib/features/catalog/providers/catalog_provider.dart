@@ -2,28 +2,38 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:weardo_outfit_builder/models/clothing_model.dart';
 
-class ClothesProvider extends ChangeNotifier {
+class CatalogProvider extends ChangeNotifier {
   List<ClothingItem> _allClothes = [];
   bool _isLoading = false;
 
   List<ClothingItem> get allClothes => _allClothes;
   bool get isLoading => _isLoading;
 
-  List<ClothingItem> getOuter() {
-    return _allClothes.where((c) => c.category == 'Outer').toList();
+  List<ClothingItem> getHeadwear() {
+    return _allClothes.where((c) => c.category == 'Headwear').toList();
   }
 
-  List<ClothingItem> getInner() {
-    return _allClothes.where((c) => c.category == 'Inner').toList();
+  List<ClothingItem> getOuterTops() {
+    return _allClothes.where((c) => c.category == 'Outer Tops').toList();
   }
 
-  List<ClothingItem> getPants() {
-    return _allClothes.where((c) => c.category == 'Pants').toList();
+  List<ClothingItem> getInnerTops() {
+    return _allClothes.where((c) => c.category == 'Inner Tops').toList();
   }
 
-  List<ClothingItem> getShoes() {
-    return _allClothes.where((c) => c.category == 'Shoes').toList();
+  List<ClothingItem> getBottoms() {
+    return _allClothes.where((c) => c.category == 'Bottoms').toList();
   }
+
+  List<ClothingItem> getFootwear() {
+    return _allClothes.where((c) => c.category == 'Footwear').toList();
+  }
+
+  // Old names mapped to new categories so builder/profile still work
+  List<ClothingItem> getOuter() => getOuterTops();
+  List<ClothingItem> getInner() => getInnerTops();
+  List<ClothingItem> getPants() => getBottoms();
+  List<ClothingItem> getShoes() => getFootwear();
 
   List<ClothingItem> getFavoriteItems() {
     return _allClothes.where((c) => c.isFavorited).toList();

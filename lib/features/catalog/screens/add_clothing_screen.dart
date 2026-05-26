@@ -7,6 +7,9 @@ import 'package:uuid/uuid.dart';
 import 'package:weardo_outfit_builder/models/clothing_model.dart';
 import 'package:provider/provider.dart';
 import 'package:weardo_outfit_builder/features/catalog/providers/catalog_provider.dart';
+import 'package:weardo_outfit_builder/features/catalog/widgets/bg_removal_status_banner.dart';
+import 'package:weardo_outfit_builder/services/background_removal/bg_removal_service.dart';
+import 'package:weardo_outfit_builder/services/background_removal/bg_removal_status.dart';
 import 'package:go_router/go_router.dart';
 
 class AddClothesScreen extends StatefulWidget {
@@ -18,14 +21,17 @@ class AddClothesScreen extends StatefulWidget {
 
 class _AddClothesScreenState extends State<AddClothesScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _heightController = TextEditingController();
-  final _widthController = TextEditingController();
+  final _bgRemovalService = BgRemovalService();
+  final _nameController = TextEditingController();
+
   String? _selectedCategory;
   XFile? _imageFile;
-  Uint8List? _imageBytes;       // for image preview
+  Uint8List? _imageBytes;
+  Uint8List? _processedBytes;
+  BgRemovalStatus _bgStatus = BgRemovalStatus.idle;
   bool _isUploading = false;
 
-  final List<String> _categories = ['Outer', 'Inner', 'Pants', 'Shoes'];
+  final List<String> _categories = ['Headwear', 'Outer Tops', 'Inner Tops', 'Bottoms', 'Footwear'];
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
@@ -35,9 +41,33 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
       setState(() {
         _imageFile = picked;
         _imageBytes = bytes;
+        _processedBytes = null;
+        _bgStatus = BgRemovalStatus.processing;
       });
+      _removeBackground(bytes);
     }
   }
+
+  Future<void> _removeBackground(Uint8List bytes) async {
+    try {
+      final result = await _bgRemovalService.removeBackground(bytes);
+      if (mounted) {
+        setState(() {
+          _processedBytes = result;
+          _bgStatus = BgRemovalStatus.done;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _bgStatus = BgRemovalStatus.failed;
+        });
+      }
+    }
+  }
+
+  Uint8List get _uploadBytes =>
+      _processedBytes ?? _imageBytes!;
 
   Future<void> _uploadAndSave() async {
     if (!_formKey.currentState!.validate()) return;
@@ -49,38 +79,43 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Select a category')));
       return;
     }
+    if (_nameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a name')));
+      return;
+    }
 
     setState(() => _isUploading = true);
 
     try {
       final userId = Supabase.instance.client.auth.currentUser!.id;
-      final fileName = '${const Uuid().v4()}.jpg';
+      final fileName = '${const Uuid().v4()}.png';
       final path = '$userId/$fileName';
       final storage = Supabase.instance.client.storage.from('clothes');
 
-      final bytes = await _imageFile!.readAsBytes();
       await storage.uploadBinary(
         path,
-        bytes,
-        fileOptions: const FileOptions(contentType: 'image/jpeg'),
+        _uploadBytes,
+        fileOptions: const FileOptions(contentType: 'image/png'),
       );
       final downloadUrl = storage.getPublicUrl(path);
 
+      const double defaultSize = 30.0;
       final newItem = ClothingItem(
         id: const Uuid().v4(),
         userId: userId,
         imageUrl: downloadUrl,
-        heightInches: double.parse(_heightController.text),
-        widthInches: double.parse(_widthController.text),
+        heightInches: defaultSize,
+        widthInches: defaultSize,
         category: _selectedCategory!,
+        name: _nameController.text.trim(),
         createdAt: DateTime.now(),
       );
 
-      await Provider.of<ClothesProvider>(context, listen: false).addClothingItem(newItem);
+      await Provider.of<CatalogProvider>(context, listen: false).addClothingItem(newItem);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Clothing added!')));
-        context.go('/clothes');
+        context.go('/catalog');
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -116,24 +151,18 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
                       Text('Tap to select image'),
                     ],
                   )
-                      : _imageBytes != null
-                      ? Image.memory(_imageBytes!, fit: BoxFit.contain)
+                      : _displayBytes != null
+                      ? Image.memory(_displayBytes!, fit: BoxFit.contain)
                       : Image.file(File(_imageFile!.path), fit: BoxFit.contain),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
+              BgRemovalStatusBanner(status: _bgStatus),
+              const SizedBox(height: 8),
               TextFormField(
-                controller: _heightController,
-                decoration: const InputDecoration(labelText: 'Height (inches)', border: OutlineInputBorder()),
-                keyboardType: TextInputType.number,
-                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _widthController,
-                decoration: const InputDecoration(labelText: 'Width (inches)', border: OutlineInputBorder()),
-                keyboardType: TextInputType.number,
-                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                controller: _nameController,
+                decoration: const InputDecoration(labelText: 'Name', border: OutlineInputBorder()),
+                validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter a name' : null,
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
@@ -148,7 +177,7 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
                 child: _isUploading ? const CircularProgressIndicator() : const Text('Add Clothing'),
               ),
               TextButton(
-                onPressed: () => context.go('/clothes'),
+                onPressed: () => context.go('/catalog'),
                 child: const Text('Cancel'),
               ),
             ],
@@ -157,4 +186,12 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
       ),
     );
   }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  Uint8List? get _displayBytes => _processedBytes ?? _imageBytes;
 }

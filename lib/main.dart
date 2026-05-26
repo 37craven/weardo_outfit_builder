@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:weardo_outfit_builder/features/auth/providers/auth_provider.dart';
 import 'package:weardo_outfit_builder/features/catalog/providers/catalog_provider.dart';
 import 'package:weardo_outfit_builder/features/outfit_builder/providers/saved_outfits_provider.dart';
@@ -11,6 +12,7 @@ import 'package:weardo_outfit_builder/features/catalog/screens/catalog_screen.da
 import 'package:weardo_outfit_builder/features/outfit_builder/screens/builder_screen.dart';
 import 'package:weardo_outfit_builder/features/catalog/screens/add_clothing_screen.dart';
 import 'package:weardo_outfit_builder/features/profile/screens/profile_screen.dart';
+import 'package:weardo_outfit_builder/features/outfit_builder/widgets/nav_bar.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,12 +31,26 @@ class WeardoApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => ClothesProvider()),
-        ChangeNotifierProvider(create: (_) => FavoriteProvider()),
+        ChangeNotifierProvider(create: (_) => CatalogProvider()),
+        ChangeNotifierProvider(create: (_) => SavedOutfitsProvider()),
       ],
       child: MaterialApp.router(
         title: 'WEARDO',
-        theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.purple)),
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.white,
+            brightness: Brightness.light,
+            primary: const Color(0xFF1C1C1C),
+            onPrimary: const Color(0xFFFFFFFF),
+            surface: const Color(0xFFFFFFFF),
+            onSurface: const Color(0xFF1C1C1C),
+          ),
+          scaffoldBackgroundColor: const Color(0xFFFFFFFF),
+          textTheme: GoogleFonts.jetBrainsMonoTextTheme().apply(
+            bodyColor: const Color(0xFF1C1C1C),
+            displayColor: const Color(0xFF1C1C1C),
+          ),
+        ),
         routerConfig: _router,
         debugShowCheckedModeBanner: false,
       ),
@@ -48,7 +64,7 @@ class WeardoApp extends StatelessWidget {
       final isLoggedIn = authProvider.currentUser != null;
       final isLoginRoute = state.matchedLocation == '/login' || state.matchedLocation == '/register';
 
-      if (isLoggedIn && isLoginRoute) return '/clothes';
+      if (isLoggedIn && isLoginRoute) return '/catalog';
       if (!isLoggedIn && !isLoginRoute) return '/login';
       return null;
     },
@@ -59,10 +75,10 @@ class WeardoApp extends StatelessWidget {
         builder: (context, state, navigationShell) => MainShell(navigationShell: navigationShell),
         branches: [
           StatefulShellBranch(
-            routes: [GoRoute(path: '/clothes', builder: (context, state) => const ClothesScreen())],
+            routes: [GoRoute(path: '/catalog', builder: (context, state) => const CatalogScreen())],
           ),
           StatefulShellBranch(
-            routes: [GoRoute(path: '/generate', builder: (context, state) => const GenerateOutfitScreen())],
+            routes: [GoRoute(path: '/builder', builder: (context, state) => const BuilderScreen())],
           ),
           StatefulShellBranch(
             routes: [GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen())],
@@ -72,26 +88,4 @@ class WeardoApp extends StatelessWidget {
       GoRoute(path: '/add-clothes', builder: (context, state) => const AddClothesScreen()),
     ],
   );
-}
-
-class MainShell extends StatelessWidget {
-  final StatefulNavigationShell navigationShell;
-
-  const MainShell({super.key, required this.navigationShell});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: navigationShell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: navigationShell.currentIndex,
-        onDestinationSelected: (index) => navigationShell.goBranch(index),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.checkroom), label: 'Clothes'),
-          NavigationDestination(icon: Icon(Icons.auto_awesome), label: 'Generate'),
-          NavigationDestination(icon: Icon(Icons.person), label: 'Profile'),
-        ],
-      ),
-    );
-  }
 }

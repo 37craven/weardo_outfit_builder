@@ -55,11 +55,12 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<String?> register(String email, String username, String password) async {
+  Future<String?> register(String email, String firstName, String lastName, String password) async {
     try {
       final response = await _auth.signUp(email: email, password: password);
       final user = response.user;
       if (user != null) {
+        final username = '$firstName $lastName';
         await Supabase.instance.client.from('users').insert({
           'id': user.id,
           'username': username,
