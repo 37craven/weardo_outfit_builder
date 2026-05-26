@@ -101,7 +101,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           crossAxisCount: 2,
                           crossAxisSpacing: 8,
                           mainAxisSpacing: 8,
-                          childAspectRatio: 0.85,
+                          childAspectRatio: 1.0,
                         ),
                         itemCount: savedProvider.savedOutfits.length,
                         itemBuilder: (ctx, index) {
@@ -168,7 +168,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             child: items.isEmpty
                 ? const Center(child: Text('Missing item'))
-                : _buildClothesPile(items),
+                : _buildOrganizedOutfit(outer, inner, bottoms, shoes),
           ),
           if (showDelete)
             GestureDetector(
@@ -183,41 +183,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildClothesPile(List<ClothingItem> items) {
-    final poses = [
-      const Offset(0, 0),
-      const Offset(6, -4),
-      const Offset(-4, 6),
-      const Offset(2, -2),
-    ];
-
-    final rotations = [-0.18, 0.15, -0.1, 0.12];
-
-    return Stack(
-      children: items.asMap().entries.map((entry) {
-        final i = entry.key;
-        final item = entry.value;
-        return Positioned.fill(
-          child: Padding(
-            padding: EdgeInsets.only(
-              left: 8 + poses[i].dx,
-              top: 8 + poses[i].dy,
-              right: 8 - poses[i].dx,
-              bottom: 8 - poses[i].dy,
-            ),
-            child: Transform.rotate(
-              angle: rotations[i],
-              child: ClipRect(
-                child: Image.network(
-                  item.imageUrl,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, _, _) => const Icon(Icons.broken_image, size: 40),
+  Widget _buildOrganizedOutfit(ClothingItem? outer, ClothingItem? inner, ClothingItem? bottoms, ClothingItem? shoes) {
+    return Column(
+      children: [
+        Expanded(
+          flex: 3,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              if (outer == null && inner == null) {
+                return const Center(child: Icon(Icons.checkroom, size: 30, color: Colors.grey));
+              }
+              final offset = outer != null && inner != null ? constraints.maxWidth * 0.08 : 0.0;
+              return Padding(
+                padding: const EdgeInsets.all(4),
+                child: Stack(
+                  children: [
+                    if (outer != null)
+                      Positioned(
+                        left: 0, top: 0, bottom: 0, right: offset,
+                        child: Image.network(outer.imageUrl, fit: BoxFit.contain, errorBuilder: (_, _, _) => const SizedBox.shrink()),
+                      ),
+                    if (inner != null)
+                      Positioned(
+                        left: offset, top: 0, bottom: 0, right: 0,
+                        child: Image.network(inner.imageUrl, fit: BoxFit.contain, errorBuilder: (_, _, _) => const SizedBox.shrink()),
+                      ),
+                  ],
                 ),
-              ),
-            ),
+              );
+            },
           ),
-        );
-      }).toList(),
+        ),
+        Expanded(
+          flex: 4,
+          child: bottoms != null
+              ? Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Image.network(bottoms.imageUrl, fit: BoxFit.contain, errorBuilder: (_, _, _) => const SizedBox.shrink()),
+                )
+              : const Center(child: Icon(Icons.checkroom, size: 30, color: Colors.grey)),
+        ),
+        Expanded(
+          flex: 3,
+          child: shoes != null
+              ? Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Image.network(shoes.imageUrl, fit: BoxFit.contain, errorBuilder: (_, _, _) => const SizedBox.shrink()),
+                )
+              : const Center(child: Icon(Icons.checkroom, size: 30, color: Colors.grey)),
+        ),
+      ],
     );
   }
 
