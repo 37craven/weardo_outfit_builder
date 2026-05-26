@@ -12,7 +12,7 @@ import 'package:weardo_outfit_builder/features/catalog/screens/catalog_screen.da
 import 'package:weardo_outfit_builder/features/outfit_builder/screens/builder_screen.dart';
 import 'package:weardo_outfit_builder/features/catalog/screens/add_clothing_screen.dart';
 import 'package:weardo_outfit_builder/features/profile/screens/profile_screen.dart';
-import 'package:weardo_outfit_builder/features/outfit_builder/widgets/nav_bar.dart';
+import 'package:weardo_outfit_builder/widgets/nav_bar.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

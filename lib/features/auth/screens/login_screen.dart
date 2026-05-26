@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:weardo_outfit_builder/features/auth/providers/auth_provider.dart';
-import 'package:weardo_outfit_builder/features/outfit_builder/widgets/button.dart';
+import 'package:weardo_outfit_builder/widgets/button.dart';
 import 'package:go_router/go_router.dart';
 
 class LoginScreen extends StatefulWidget {

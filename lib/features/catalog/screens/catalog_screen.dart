@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:weardo_outfit_builder/features/catalog/providers/catalog_provider.dart';
 import 'package:weardo_outfit_builder/models/clothing_model.dart';
+import 'package:weardo_outfit_builder/widgets/floating_action_button.dart';
 import 'package:go_router/go_router.dart';
 
 class CatalogScreen extends StatefulWidget {
@@ -38,13 +39,15 @@ class _CatalogScreenState extends State<CatalogScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 48, 24, 48),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Catalog', style: TextStyle(fontSize: 32)),
-            const SizedBox(height: 8),
+      body: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 48, 24, 48),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Catalog', style: TextStyle(fontSize: 32)),
+                const SizedBox(height: 8),
             TextField(
               controller: _searchController,
               decoration: const InputDecoration(
@@ -67,6 +70,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
                 border: Border(
                   left: BorderSide(color: Colors.black, width: 1),
                   right: BorderSide(color: Colors.black, width: 1),
+                  top: BorderSide(color: Colors.black, width: 1),
+                  bottom: BorderSide(color: Colors.black, width: 1),
                 ),
               ),
               child: SizedBox(
@@ -83,10 +88,6 @@ class _CatalogScreenState extends State<CatalogScreen> {
                       child: Container(
                         decoration: BoxDecoration(
                           color: selected ? Colors.black : Colors.white,
-                          border: const Border(
-                            top: BorderSide(color: Colors.black, width: 1),
-                            bottom: BorderSide(color: Colors.black, width: 1),
-                          ),
                         ),
                         padding: const EdgeInsets.symmetric(horizontal: 24),
                         alignment: Alignment.center,
@@ -142,22 +143,15 @@ class _CatalogScreenState extends State<CatalogScreen> {
           ],
         ),
       ),
-      floatingActionButton: Container(
-        width: 48,
-        height: 48,
-        decoration: const BoxDecoration(
-          color: Colors.black,
-          border: Border(
-            top: BorderSide(color: Colors.black, width: 1),
-            bottom: BorderSide(color: Colors.black, width: 1),
-            left: BorderSide(color: Colors.black, width: 1),
-            right: BorderSide(color: Colors.black, width: 1),
+          Positioned(
+            right: 24,
+            bottom: 24,
+            child: AppFloatingActionButton(
+              icon: Icons.add,
+              onPressed: () => context.go('/add-clothes'),
+            ),
           ),
-        ),
-        child: IconButton(
-          icon: const Icon(Icons.add, color: Colors.white),
-          onPressed: () => context.go('/add-clothes'),
-        ),
+        ],
       ),
     );
   }
@@ -200,83 +194,68 @@ class _CatalogItemCardState extends State<_CatalogItemCard> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onLongPress: () => setState(() => _showDelete = !_showDelete),
-      child: Column(
-        spacing: 12,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Stack(
         children: [
-          Expanded(
-            child: Container(
-              decoration: const BoxDecoration(
-                border: Border(
-                  top: BorderSide(color: Colors.black, width: 1),
-                  bottom: BorderSide(color: Colors.black, width: 1),
-                  left: BorderSide(color: Colors.black, width: 1),
-                  right: BorderSide(color: Colors.black, width: 1),
-                ),
-              ),
-              child: ClipRect(
-                child: Image.network(
-                  widget.item.imageUrl,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 50),
-                ),
-              ),
-            ),
-          ),
-          Row(
+          Column(
+            spacing: 4,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(widget.item.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
-                    Text(widget.item.category, style: TextStyle(fontSize: 10, color: Colors.grey[500])),
-                  ],
+                child: Container(
+                  decoration: const BoxDecoration(
+                    border: Border(
+                      top: BorderSide(color: Colors.black, width: 1),
+                      bottom: BorderSide(color: Colors.black, width: 1),
+                      left: BorderSide(color: Colors.black, width: 1),
+                      right: BorderSide(color: Colors.black, width: 1),
+                    ),
+                  ),
+                  child: ClipRect(
+                    child: Image.network(
+                      widget.item.imageUrl,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, _, _) => const Icon(Icons.broken_image, size: 50),
+                    ),
+                  ),
                 ),
               ),
-              IconButton(
-                icon: Icon(
-                  widget.item.isFavorited ? Icons.star : Icons.star_border,
-                  color: widget.item.isFavorited ? Colors.black : null,
-                  size: 24,
-                ),
-                onPressed: () {
-                  Provider.of<CatalogProvider>(context, listen: false).toggleFavoriteItem(widget.item.id);
-                },
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(widget.item.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                        Text(widget.item.category, style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      widget.item.isFavorited ? Icons.star : Icons.star_border,
+                      color: widget.item.isFavorited ? Colors.black : null,
+                      size: 24,
+                    ),
+                    onPressed: () {
+                      Provider.of<CatalogProvider>(context, listen: false).toggleFavoriteItem(widget.item.id);
+                    },
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
               ),
-              if (_showDelete) ...[
-                const SizedBox(width: 4),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                  onPressed: () => _confirmDelete(context),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              ],
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  void _confirmDelete(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Remove item'),
-        content: const Text('This item will be deleted permanently.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () {
-              Provider.of<CatalogProvider>(context, listen: false).removeClothingItem(widget.item.id);
-              Navigator.pop(ctx);
-            },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
+          if (_showDelete)
+            GestureDetector(
+              onTap: () {
+                Provider.of<CatalogProvider>(context, listen: false).removeClothingItem(widget.item.id);
+              },
+              child: Container(
+                color: Colors.red.withValues(alpha: 0.8),
+                child: const Center(child: Icon(Icons.delete, color: Colors.white, size: 40)),
+              ),
+            ),
         ],
       ),
     );
