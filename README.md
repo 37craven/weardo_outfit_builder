@@ -29,8 +29,9 @@ Add screenshots here:
 ![Builder](screenshots/builder.png)
 ![Profile](screenshots/profile.png)
 ![Add Clothing](screenshots/add_clothing.png)
--->
 *(Drop screenshots into a `screenshots/` folder and uncomment the lines above.)*
+-->
+
 
 ---
 
