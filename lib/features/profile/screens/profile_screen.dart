@@ -84,7 +84,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ],
                           ),
                           Text(
-                            '${clothesProvider.getItemCount()} items in closet',
+                            '${clothesProvider.getItemCount()} items in catalog',
                             style: const TextStyle(fontSize: 18),
                           ),
                         ],
