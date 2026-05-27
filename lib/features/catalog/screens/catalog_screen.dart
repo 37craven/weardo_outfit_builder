@@ -19,7 +19,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
   String _selectedCategory = 'all';
   String _searchQuery = '';
 
-  static const _categories = ['all', 'Headwear', 'Outer Tops', 'Inner Tops', 'Bottoms', 'Footwear'];
+  static const _categories = ['all', 'Favorites', 'Headwear', 'Outer Tops', 'Inner Tops', 'Bottoms', 'Footwear'];
 
   @override
   void initState() {
@@ -41,7 +41,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
       body: Stack(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 48, 24, 48),
+            padding: const EdgeInsets.fromLTRB(24, 48, 24, 0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -180,6 +180,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
   List<ClothingItem> _filteredItems(CatalogProvider provider) {
     List<ClothingItem> items;
     switch (_selectedCategory) {
+      case 'Favorites': items = provider.getFavoriteItems(); break;
       case 'Headwear': items = provider.getHeadwear(); break;
       case 'Outer Tops': items = provider.getOuterTops(); break;
       case 'Inner Tops': items = provider.getInnerTops(); break;

@@ -9,7 +9,7 @@ class SavedOutfitsProvider extends ChangeNotifier {
   bool _isMutating = false;
   bool _hasError = false;
   FavoriteOutfit? _pendingLoad;
-  StreamSubscription? _streamSub;
+  String? _userId;
   StreamSubscription? _authSub;
 
   List<FavoriteOutfit> get savedOutfits => _savedOutfits;
@@ -32,15 +32,16 @@ class SavedOutfitsProvider extends ChangeNotifier {
   }
 
   void _init() {
-    _setupStream();
+    _userId = Supabase.instance.client.auth.currentUser?.id;
+    _fetchSavedOutfits();
     _authSub = Supabase.instance.client.auth.onAuthStateChange.listen((event) {
+      _userId = event.session?.user.id;
       if (event.session != null) {
         _savedOutfits = [];
         _isLoading = true;
         notifyListeners();
-        _setupStream();
+        _fetchSavedOutfits();
       } else {
-        _streamSub?.cancel();
         _savedOutfits = [];
         _isLoading = false;
         notifyListeners();
@@ -48,34 +49,30 @@ class SavedOutfitsProvider extends ChangeNotifier {
     });
   }
 
-  void _setupStream() {
-    final userId = Supabase.instance.client.auth.currentUser?.id;
-    if (userId == null) return;
-
-    _streamSub?.cancel();
+  Future<void> _fetchSavedOutfits() async {
+    final uid = _userId;
+    if (uid == null) return;
     _hasError = false;
-    _streamSub = Supabase.instance.client
-        .from('favorites')
-        .stream(primaryKey: ['id'])
-        .eq('user_id', userId)
-        .order('saved_at', ascending: false)
-        .listen((data) {
-          _savedOutfits = (data as List)
-              .map((row) => FavoriteOutfit.fromMap(row['id'], row))
-              .toList();
-          _isLoading = false;
-          _hasError = false;
-          notifyListeners();
-        }, onError: (_) {
-          _isLoading = false;
-          _hasError = true;
-          notifyListeners();
-        });
+    try {
+      final data = await Supabase.instance.client
+          .from('favorites')
+          .select()
+          .eq('user_id', uid)
+          .order('saved_at', ascending: false);
+      _savedOutfits = (data as List)
+          .map((row) => FavoriteOutfit.fromMap(row['id'], row))
+          .toList();
+      _isLoading = false;
+    } catch (_) {
+      _isLoading = false;
+      _hasError = true;
+    }
+    notifyListeners();
   }
 
   void retry() {
     if (!_hasError) return;
-    _setupStream();
+    _fetchSavedOutfits();
   }
 
   Future<void> addSavedOutfit(FavoriteOutfit outfit) async {
@@ -83,6 +80,7 @@ class SavedOutfitsProvider extends ChangeNotifier {
     notifyListeners();
     try {
       await Supabase.instance.client.from('favorites').insert(outfit.toMap());
+      await _fetchSavedOutfits();
     } finally {
       _isMutating = false;
       notifyListeners();
@@ -94,6 +92,7 @@ class SavedOutfitsProvider extends ChangeNotifier {
     notifyListeners();
     try {
       await Supabase.instance.client.from('favorites').delete().eq('id', id);
+      await _fetchSavedOutfits();
     } finally {
       _isMutating = false;
       notifyListeners();
@@ -102,7 +101,6 @@ class SavedOutfitsProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _streamSub?.cancel();
     _authSub?.cancel();
     super.dispose();
   }

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -22,7 +23,11 @@ class AddClothesScreen extends StatefulWidget {
 
 class _AddClothesScreenState extends State<AddClothesScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _bgRemovalService = BgRemovalService();
+  final _bgRemovalService = BgRemovalService(
+    baseUrl: dotenv.get('BG_REMOVAL_URL', fallback: 'http://localhost:8000'),
+    username: dotenv.env['BG_REMOVAL_USERNAME'],
+    password: dotenv.env['BG_REMOVAL_PASSWORD'],
+  );
   final _nameController = TextEditingController();
 
   String? _selectedCategory;
@@ -40,8 +45,45 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
   );
 
   Future<void> _pickImage() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            GestureDetector(
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+              child: const Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.photo_library, size: 40),
+                  SizedBox(height: 8),
+                  Text('Gallery'),
+                ],
+              ),
+            ),
+            GestureDetector(
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+              child: const Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.camera_alt, size: 40),
+                  SizedBox(height: 8),
+                  Text('Camera'),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null) return;
+
     final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery);
+    final picked = await picker.pickImage(source: source);
     if (picked != null) {
       final bytes = await picked.readAsBytes();
       setState(() {

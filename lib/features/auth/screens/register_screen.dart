@@ -13,6 +13,7 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -55,41 +56,54 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     height: 48,
                   ),
                   SizedBox(height: isSmall ? 24 : screenHeight * 0.04),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      TextField(controller: _usernameController, decoration: const InputDecoration(labelText: 'Username')),
-                      const SizedBox(height: 20),
-                      TextField(controller: _emailController, decoration: const InputDecoration(labelText: 'Email')),
-                      const SizedBox(height: 20),
-                      TextField(
-                        controller: _passwordController,
-                        obscureText: _obscurePassword,
-                        decoration: InputDecoration(
-                          labelText: 'Password',
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                  Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        TextFormField(
+                          controller: _usernameController,
+                          decoration: const InputDecoration(labelText: 'Username'),
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) return 'Enter a username';
+                            if (v.contains(' ')) return 'Username cannot contain spaces';
+                            if (!RegExp(r'^[a-zA-Z0-9_-]+$').hasMatch(v)) return 'Only letters, numbers, underscores, and hyphens';
+                            if (v.length < 3) return 'Username must be at least 3 characters';
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 20),
+                        TextField(controller: _emailController, decoration: const InputDecoration(labelText: 'Email')),
+                        const SizedBox(height: 20),
+                        TextField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          decoration: InputDecoration(
+                            labelText: 'Password',
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                              ),
+                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                             ),
-                            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 20),
-                      TextField(
-                        controller: _confirmController,
-                        obscureText: _obscureConfirm,
-                        decoration: InputDecoration(
-                          labelText: 'Repeat Password',
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscureConfirm ? Icons.visibility_off : Icons.visibility,
+                        const SizedBox(height: 20),
+                        TextField(
+                          controller: _confirmController,
+                          obscureText: _obscureConfirm,
+                          decoration: InputDecoration(
+                            labelText: 'Repeat Password',
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscureConfirm ? Icons.visibility_off : Icons.visibility,
+                              ),
+                              onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
                             ),
-                            onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   const Spacer(),
                   Column(
@@ -98,6 +112,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         label: 'Create Account',
                         isLoading: _isLoading,
                         onPressed: () async {
+                          if (!_formKey.currentState!.validate()) return;
                           if (_passwordController.text != _confirmController.text) {
                             showError('Passwords do not match');
                             return;

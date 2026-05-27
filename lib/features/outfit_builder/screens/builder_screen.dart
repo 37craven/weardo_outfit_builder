@@ -271,12 +271,33 @@ class _BuilderScreenState extends State<BuilderScreen> {
                       const SizedBox(height: 12),
                       AppFloatingActionButton(
                         text: builder.twoLayerMode ? '2' : '1',
-                        onPressed: builder.toggleLayers,
+                        onPressed: () {
+                          builder.toggleLayers();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(builder.twoLayerMode
+                                  ? 'Two-layer mode on'
+                                  : 'Two-layer mode off'),
+                              duration: const Duration(milliseconds: 500),
+                            ),
+                          );
+                        },
                       ),
                       const SizedBox(height: 12),
                       AppFloatingActionButton(
-                        text: "H",
-                        onPressed: builder.toggleHeadwear,
+                        text: builder.headwearEnabled ? 'H' : null,
+                        icon: builder.headwearEnabled ? null : Icons.person_outline,
+                        onPressed: () {
+                          builder.toggleHeadwear();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(builder.headwearEnabled
+                                  ? 'Headwear shown'
+                                  : 'Headwear hidden'),
+                              duration: const Duration(milliseconds: 500),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),

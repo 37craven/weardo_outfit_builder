@@ -198,8 +198,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 24),
           Icon(Icons.favorite_border, size: 60, color: Colors.grey[400]),
           const SizedBox(height: 12),
-          Text('No saved outfits yet.', style: TextStyle(color: Colors.grey[600])),
-          Text('Go to Builder to create and save outfits.', style: TextStyle(color: Colors.grey[600])),
+          const Text(
+            'No saved outfits yet. Go to Builder to create and save outfits.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Color(0xFF999999)),
+          ),
         ],
       ),
     );

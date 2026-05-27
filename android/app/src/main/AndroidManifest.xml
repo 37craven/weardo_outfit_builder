@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+        <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.CAMERA"/>
     <application
-        android:label="weardo_outfit_builder"
+        android:label="Weardo"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

@@ -5,6 +5,7 @@ class AuthProvider extends ChangeNotifier {
   final GoTrueClient _auth = Supabase.instance.client.auth;
   User? _user;
   String? _username;
+  String? _pendingUsername;
 
   User? get currentUser => _user;
   String? get username => _username;
@@ -29,16 +30,15 @@ class AuthProvider extends ChangeNotifier {
           .eq('id', uid)
           .maybeSingle();
       if (data != null) {
-        _username = data['username'] ?? 'User';
+        _username = data['username'];
       } else {
-        final email = _user?.email ?? '';
-        final defaultUsername = email.split('@').first;
+        final name = _pendingUsername ?? (_user?.email?.split('@').first ?? 'User');
         await Supabase.instance.client.from('users').insert({
           'id': uid,
-          'username': defaultUsername,
-          'email': email,
+          'username': name,
+          'email': _user?.email ?? '',
         });
-        _username = defaultUsername;
+        _username = name;
       }
     } catch (e) {
       _username = 'User';
@@ -52,13 +52,10 @@ class AuthProvider extends ChangeNotifier {
       if (usernameOrEmail.contains('@')) {
         email = usernameOrEmail;
       } else {
-        final result = await Supabase.instance.client
-            .from('users')
-            .select('email')
-            .eq('username', usernameOrEmail)
-            .maybeSingle();
-        if (result == null) return 'User not found';
-        email = result['email'] as String;
+        final results = await Supabase.instance.client
+            .rpc('get_email_by_username', params: {'p_username': usernameOrEmail});
+        if (results == null || (results as List).isEmpty) return 'User not found';
+        email = (results[0] as Map)['email'] as String;
       }
       await _auth.signInWithPassword(email: email, password: password);
       return null;
@@ -76,17 +73,11 @@ class AuthProvider extends ChangeNotifier {
           .maybeSingle();
       if (existing != null) return 'Username already taken';
 
-      final response = await _auth.signUp(email: email, password: password);
-      final user = response.user;
-      if (user != null) {
-        await Supabase.instance.client.from('users').insert({
-          'id': user.id,
-          'username': username,
-          'email': email,
-        });
-      }
+      _pendingUsername = username;
+      await _auth.signUp(email: email, password: password);
       return null;
     } on AuthException catch (e) {
+      _pendingUsername = null;
       return e.message;
     }
   }

@@ -10,6 +10,7 @@ import 'package:weardo_outfit_builder/features/outfit_builder/providers/saved_ou
 import 'package:weardo_outfit_builder/features/outfit_builder/providers/builder_provider.dart';
 import 'package:weardo_outfit_builder/features/auth/screens/login_screen.dart';
 import 'package:weardo_outfit_builder/features/auth/screens/register_screen.dart';
+import 'package:weardo_outfit_builder/features/splash/splash_screen.dart';
 import 'package:weardo_outfit_builder/features/catalog/screens/catalog_screen.dart';
 import 'package:weardo_outfit_builder/features/outfit_builder/screens/builder_screen.dart';
 import 'package:weardo_outfit_builder/features/catalog/screens/add_clothing_screen.dart';
@@ -42,17 +43,19 @@ class _WeardoAppState extends State<WeardoApp> {
     super.initState();
     _authProvider = AuthProvider();
     _router = GoRouter(
-      initialLocation: '/login',
+      initialLocation: '/splash',
       refreshListenable: _authProvider,
       redirect: (context, state) {
         final isLoggedIn = _authProvider.currentUser != null;
-        final isLoginRoute = state.matchedLocation == '/login' || state.matchedLocation == '/register';
+        final location = state.matchedLocation;
+        final isAuthRoute = location == '/login' || location == '/register' || location == '/splash';
 
-        if (isLoggedIn && isLoginRoute) return '/catalog';
-        if (!isLoggedIn && !isLoginRoute) return '/login';
+        if (isLoggedIn && isAuthRoute) return '/catalog';
+        if (!isLoggedIn && !isAuthRoute) return '/login';
         return null;
       },
       routes: [
+        GoRoute(path: '/splash', builder: (context, state) => const SplashScreen()),
         GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
         GoRoute(path: '/register', builder: (context, state) => const RegisterScreen()),
         StatefulShellRoute.indexedStack(
@@ -84,7 +87,7 @@ class _WeardoAppState extends State<WeardoApp> {
         ChangeNotifierProvider(create: (_) => BuilderProvider()),
       ],
       child: MaterialApp.router(
-        title: 'WEARDO',
+        title: 'Weardo',
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
             seedColor: Colors.white,

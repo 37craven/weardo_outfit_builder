@@ -29,6 +29,15 @@ CREATE POLICY "Users can insert own data"
   ON users FOR INSERT
   WITH CHECK (auth.uid() = id);
 
+-- Bypasses RLS to look up email by username during login (called via .rpc())
+CREATE OR REPLACE FUNCTION get_email_by_username(p_username TEXT)
+RETURNS TABLE(email TEXT)
+LANGUAGE sql
+SECURITY DEFINER
+AS $$
+  SELECT email FROM users WHERE username = p_username LIMIT 1;
+$$;
+
 -- ============================================
 -- CLOTHES TABLE
 -- ============================================
@@ -114,11 +123,11 @@ CREATE POLICY "Allow individual delete"
   USING (bucket_id = 'clothes' AND owner = auth.uid());
 
 -- ============================================
--- ENABLE REALTIME FOR STREAMS
--- ============================================
-ALTER PUBLICATION supabase_realtime ADD TABLE clothes;
-ALTER PUBLICATION supabase_realtime ADD TABLE favorites;
-
+-- NOTE: Realtime publications not needed anymore
+-- (using one-shot fetch-after-mutate instead of streams)
+-- If you need them later, uncomment:
+-- ALTER PUBLICATION supabase_realtime ADD TABLE clothes;
+-- ALTER PUBLICATION supabase_realtime ADD TABLE favorites;
 -- ============================================
 -- IMPORTANT: Disable email confirmation
 -- ============================================

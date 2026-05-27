@@ -92,9 +92,53 @@ class CatalogItemCard extends StatelessWidget {
                                     );
                                   }
                                 } catch (e) {
-                                  if (context.mounted) {
+                                  if (!context.mounted) return;
+                                  final msg = e.toString();
+                                  if (msg.contains('USED_IN_SAVED_OUTFITS')) {
+                                    final count = msg.split(':').last;
+                                    showDialog(
+                                      context: context,
+                                      builder: (ctx) => Dialog(
+                                        backgroundColor: Colors.white,
+                                        shape: const RoundedRectangleBorder(),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(24),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                'Cannot remove item',
+                                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                              ),
+                                              const SizedBox(height: 12),
+                                              Text(
+                                                'This item is used in $count saved outfit${count == '1' ? '' : 's'}. Remove it from those outfits first.',
+                                                textAlign: TextAlign.center,
+                                              ),
+                                              const SizedBox(height: 20),
+                                              GestureDetector(
+                                                onTap: () => Navigator.pop(ctx),
+                                                child: Container(
+                                                  height: 44,
+                                                  decoration: const BoxDecoration(
+                                                    border: Border(
+                                                      top: BorderSide(color: Colors.black, width: 1),
+                                                      bottom: BorderSide(color: Colors.black, width: 1),
+                                                      left: BorderSide(color: Colors.black, width: 1),
+                                                      right: BorderSide(color: Colors.black, width: 1),
+                                                    ),
+                                                  ),
+                                                  child: const Center(child: Text('OK')),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  } else {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Failed to remove item')),
+                                      const SnackBar(content: Text('Failed to remove item')),
                                     );
                                   }
                                 }
