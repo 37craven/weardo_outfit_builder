@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_boring_avatars/flutter_boring_avatars.dart';
 import 'package:provider/provider.dart';
 import 'package:weardo_outfit_builder/features/auth/providers/auth_provider.dart';
 import 'package:weardo_outfit_builder/features/catalog/providers/catalog_provider.dart';
 import 'package:weardo_outfit_builder/features/outfit_builder/providers/saved_outfits_provider.dart';
-import 'package:weardo_outfit_builder/models/clothing_model.dart';
-import 'package:weardo_outfit_builder/models/outfit_model.dart';
+import 'package:weardo_outfit_builder/features/profile/widgets/saved_outfits_grid.dart';
+import 'package:weardo_outfit_builder/features/profile/widgets/saved_outfit_card.dart';
 import 'package:go_router/go_router.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -20,10 +21,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<CatalogProvider>(context, listen: false).fetchUserClothes();
-      Provider.of<SavedOutfitsProvider>(context, listen: false).fetchSavedOutfits();
-    });
   }
 
   @override
@@ -34,7 +31,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final name = authProvider.username ?? 'User';
     final email = authProvider.currentUser?.email ?? '';
-    final initials = name.isNotEmpty ? name[0].toUpperCase() : '?';
+
 
     return Scaffold(
       body: Padding(
@@ -65,10 +62,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         spacing: 8,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          CircleAvatar(
-                            radius: 48,
-                            backgroundColor: Colors.black,
-                            child: Text(initials, style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)),
+                          SizedBox(
+                            width: 128,
+                            height: 128,
+                            child: BoringAvatar(
+                              name: email,
+                              type: BoringAvatarType.beam,
+                              palette: const BoringAvatarPalette([
+                                Color(0xFFFFFFFF),
+                                Color(0xFF000000),
+                                Color(0xFF424242),
+                                Color(0xFFBDBDBD),
+                              ]),
+                              shape: const OvalBorder(),
+                            ),
                           ),
                           Column(
                             children: [
@@ -89,12 +96,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: Text('Saved Outfits', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     ),
                     const SizedBox(height: 12),
-                    if (savedProvider.isLoading || clothesProvider.isLoading)
-                      const Center(child: CircularProgressIndicator())
-                    else if (savedProvider.savedOutfits.isEmpty)
-                      _buildEmptyState()
-                    else
-                      _buildOutfitsGrid(savedProvider, clothesProvider),
+                    _buildSavedOutfits(savedProvider),
                   ],
                 ),
               ),
@@ -102,6 +104,89 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSavedOutfits(SavedOutfitsProvider savedProvider) {
+    if (savedProvider.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (savedProvider.savedOutfits.isEmpty) {
+      return savedProvider.hasError
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.cloud_off, size: 60, color: Colors.red),
+                  const SizedBox(height: 12),
+                  const Text('Could not load saved outfits'),
+                  const SizedBox(height: 16),
+                  TextButton.icon(
+                    onPressed: savedProvider.retry,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Retry'),
+                  ),
+                ],
+              ),
+            )
+          : _buildEmptyState();
+    }
+
+    return Column(
+      children: [
+        if (savedProvider.hasError)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            margin: const EdgeInsets.only(bottom: 8),
+            decoration: const BoxDecoration(color: Colors.redAccent),
+            child: Row(
+              children: [
+                const Icon(Icons.cloud_off, color: Colors.white, size: 18),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text('Connection lost', style: TextStyle(color: Colors.white)),
+                ),
+                TextButton(
+                  onPressed: savedProvider.retry,
+                  style: TextButton.styleFrom(foregroundColor: Colors.white),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        SavedOutfitsGrid(
+          outfits: savedProvider.savedOutfits,
+          cardBuilder: (outfit, cardWidth) => SavedOutfitCard(
+            fav: outfit,
+            cardWidth: cardWidth,
+            showDelete: _deleteTargetId == outfit.id,
+            onTap: () {
+              savedProvider.requestLoad(outfit);
+              context.go('/builder');
+            },
+            onLongPress: () => setState(() => _deleteTargetId = _deleteTargetId == outfit.id ? null : outfit.id),
+            onDelete: () async {
+              try {
+                await savedProvider.removeSavedOutfit(outfit.id);
+                setState(() => _deleteTargetId = null);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Outfit removed')),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to remove outfit')),
+                  );
+                }
+              }
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -119,188 +204,4 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-
-  Widget _buildOutfitsGrid(SavedOutfitsProvider savedProvider, CatalogProvider clothesProvider) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final padding = 24.0 * 2;
-    final spacing = 8.0;
-    final cardWidth = (screenWidth - padding - spacing) / 2;
-    final outfits = savedProvider.savedOutfits;
-
-    double cardHeight(FavoriteOutfit f) {
-      return cardWidth + (f.headwearId != null ? cardWidth * 0.25 : 0) + 2;
-    }
-
-    final col1 = <Widget>[];
-    final col2 = <Widget>[];
-    double h1 = 0, h2 = 0;
-
-    for (var i = 0; i < outfits.length; i++) {
-      final h = cardHeight(outfits[i]);
-      final card = Padding(
-        padding: EdgeInsets.only(top: (h1 <= h2 ? col1 : col2).isEmpty ? 0 : spacing),
-        child: _buildOutfitCard(outfits[i], cardWidth, clothesProvider, savedProvider),
-      );
-      if (h1 <= h2) {
-        col1.add(card);
-        h1 += h + spacing;
-      } else {
-        col2.add(card);
-        h2 += h + spacing;
-      }
-    }
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(child: Column(children: col1)),
-        const SizedBox(width: 8),
-        Expanded(child: Column(children: col2)),
-      ],
-    );
-  }
-
-  Widget _buildOutfitCard(FavoriteOutfit fav, double cardWidth, CatalogProvider clothesProvider, SavedOutfitsProvider savedProvider) {
-    final headwear = fav.headwearId != null ? _findItem(fav.headwearId!, 'Headwear', clothesProvider) : null;
-    final hasOuter = fav.outerId != null;
-    final outer = hasOuter ? _findItem(fav.outerId!, 'Outer', clothesProvider) : null;
-    final inner = _findItem(fav.innerId, 'Inner', clothesProvider);
-    final bottoms = _findItem(fav.pantsId, 'Bottoms', clothesProvider);
-    final shoes = _findItem(fav.shoesId, 'Shoes', clothesProvider);
-
-    final items = <ClothingItem>[];
-    if (headwear != null) items.add(headwear);
-    if (hasOuter && outer != null) items.add(outer);
-    if (inner != null) items.add(inner);
-    if (bottoms != null) items.add(bottoms);
-    if (shoes != null) items.add(shoes);
-
-    final hasHeadwear = headwear != null;
-    final headwearHeight = cardWidth * 0.25;
-    final cardHeight = cardWidth + (hasHeadwear ? headwearHeight : 0) + 2;
-
-    final showDelete = _deleteTargetId == fav.id;
-
-    return SizedBox(
-      width: cardWidth,
-      height: cardHeight,
-      child: GestureDetector(
-        onTap: () {
-          savedProvider.requestLoad(fav);
-          context.go('/builder');
-        },
-        onLongPress: () => setState(() => _deleteTargetId = showDelete ? null : fav.id),
-        child: Stack(
-          children: [
-            Container(
-              decoration: const BoxDecoration(
-                border: Border(
-                  top: BorderSide(color: Colors.black, width: 1),
-                  bottom: BorderSide(color: Colors.black, width: 1),
-                  left: BorderSide(color: Colors.black, width: 1),
-                  right: BorderSide(color: Colors.black, width: 1),
-                ),
-              ),
-              child: items.isEmpty
-                  ? const Center(child: Text('Missing item'))
-                  : Column(
-                      children: [
-                        if (hasHeadwear)
-                          SizedBox(
-                            height: headwearHeight,
-                            child: Padding(
-                              padding: const EdgeInsets.all(4),
-                              child: Image.network(headwear.imageUrl, fit: BoxFit.contain, errorBuilder: (_, _, _) => const SizedBox.shrink()),
-                            ),
-                          ),
-                        SizedBox(
-                          height: cardWidth,
-                          child: _buildOrganizedOutfit(outer, inner, bottoms, shoes),
-                        ),
-                      ],
-                    ),
-            ),
-            if (showDelete)
-              GestureDetector(
-                onTap: () => savedProvider.removeSavedOutfit(fav.id),
-                child: Container(
-                  color: Colors.red.withValues(alpha: 0.8),
-                  child: const Center(child: Icon(Icons.delete, color: Colors.white, size: 40)),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOrganizedOutfit(ClothingItem? outer, ClothingItem? inner, ClothingItem? bottoms, ClothingItem? shoes) {
-    return Column(
-      children: [
-        Expanded(
-          flex: 3,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              if (outer == null && inner == null) {
-                return const Center(child: Icon(Icons.checkroom, size: 30, color: Colors.grey));
-              }
-              final offset = outer != null && inner != null ? constraints.maxWidth * 0.08 : 0.0;
-              return Padding(
-                padding: const EdgeInsets.all(4),
-                child: Stack(
-                  children: [
-                    if (outer != null)
-                      Positioned(
-                        left: 0, top: 0, bottom: 0, right: offset,
-                        child: Image.network(outer.imageUrl, fit: BoxFit.contain, errorBuilder: (_, _, _) => const SizedBox.shrink()),
-                      ),
-                    if (inner != null)
-                      Positioned(
-                        left: offset, top: 0, bottom: 0, right: 0,
-                        child: Image.network(inner.imageUrl, fit: BoxFit.contain, errorBuilder: (_, _, _) => const SizedBox.shrink()),
-                      ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-        Expanded(
-          flex: 4,
-          child: bottoms != null
-              ? Padding(
-                  padding: const EdgeInsets.all(4),
-                  child: Image.network(bottoms.imageUrl, fit: BoxFit.contain, errorBuilder: (_, _, _) => const SizedBox.shrink()),
-                )
-              : const Center(child: Icon(Icons.checkroom, size: 30, color: Colors.grey)),
-        ),
-        Expanded(
-          flex: 3,
-          child: shoes != null
-              ? Padding(
-                  padding: const EdgeInsets.all(4),
-                  child: Image.network(shoes.imageUrl, fit: BoxFit.contain, errorBuilder: (_, _, _) => const SizedBox.shrink()),
-                )
-              : const Center(child: Icon(Icons.checkroom, size: 30, color: Colors.grey)),
-        ),
-      ],
-    );
-  }
-
-  ClothingItem? _findItem(String id, String category, CatalogProvider provider) {
-    final list = switch (category) {
-      'Headwear' => provider.getHeadwear(),
-      'Outer' => provider.getOuter(),
-      'Inner' => provider.getInner(),
-      'Bottoms' => provider.getBottoms(),
-      'Shoes' => provider.getShoes(),
-      _ => <ClothingItem>[],
-    };
-    try {
-      return list.firstWhere((e) => e.id == id);
-    } catch (_) {
-      return null;
-    }
-  }
-
 }

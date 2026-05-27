@@ -114,6 +114,12 @@ CREATE POLICY "Allow individual delete"
   USING (bucket_id = 'clothes' AND owner = auth.uid());
 
 -- ============================================
+-- ENABLE REALTIME FOR STREAMS
+-- ============================================
+ALTER PUBLICATION supabase_realtime ADD TABLE clothes;
+ALTER PUBLICATION supabase_realtime ADD TABLE favorites;
+
+-- ============================================
 -- IMPORTANT: Disable email confirmation
 -- ============================================
 -- Go to Authentication > Settings > General

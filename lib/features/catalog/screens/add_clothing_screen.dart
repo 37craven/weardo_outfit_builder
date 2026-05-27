@@ -10,6 +10,7 @@ import 'package:weardo_outfit_builder/features/catalog/providers/catalog_provide
 import 'package:weardo_outfit_builder/features/catalog/widgets/bg_removal_status_banner.dart';
 import 'package:weardo_outfit_builder/services/background_removal/bg_removal_service.dart';
 import 'package:weardo_outfit_builder/services/background_removal/bg_removal_status.dart';
+import 'package:weardo_outfit_builder/widgets/button.dart';
 import 'package:go_router/go_router.dart';
 
 class AddClothesScreen extends StatefulWidget {
@@ -32,6 +33,11 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
   bool _isUploading = false;
 
   final List<String> _categories = ['Headwear', 'Outer Tops', 'Inner Tops', 'Bottoms', 'Footwear'];
+
+  static const _inputBorder = OutlineInputBorder(
+    borderRadius: BorderRadius.zero,
+    borderSide: BorderSide(color: Colors.black, width: 1),
+  );
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
@@ -118,7 +124,9 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
         context.go('/catalog');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     } finally {
       if (mounted) setState(() => _isUploading = false);
     }
@@ -127,60 +135,82 @@ class _AddClothesScreenState extends State<AddClothesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Add Clothing')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              GestureDetector(
-                onTap: _pickImage,
-                child: Container(
-                  height: 200,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey),
-                    borderRadius: BorderRadius.circular(12),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
+          child: Form(
+            key: _formKey,
+            child: ListView(
+              children: [
+                const Text('Add Clothing', style: TextStyle(fontSize: 32)),
+                const SizedBox(height: 24),
+                GestureDetector(
+                  onTap: _pickImage,
+                  child: Container(
+                    height: 200,
+                    width: double.infinity,
+                    decoration: const BoxDecoration(
+                      border: Border(
+                        top: BorderSide(color: Colors.black, width: 1),
+                        bottom: BorderSide(color: Colors.black, width: 1),
+                        left: BorderSide(color: Colors.black, width: 1),
+                        right: BorderSide(color: Colors.black, width: 1),
+                      ),
+                    ),
+                    child: _imageFile == null
+                        ? const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.add_photo_alternate, size: 50),
+                              SizedBox(height: 8),
+                              Text('Tap to select image'),
+                            ],
+                          )
+                        : _displayBytes != null
+                            ? Image.memory(_displayBytes!, fit: BoxFit.contain)
+                            : Image.file(File(_imageFile!.path), fit: BoxFit.contain),
                   ),
-                  child: _imageFile == null
-                      ? const Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.add_photo_alternate, size: 50),
-                      Text('Tap to select image'),
-                    ],
-                  )
-                      : _displayBytes != null
-                      ? Image.memory(_displayBytes!, fit: BoxFit.contain)
-                      : Image.file(File(_imageFile!.path), fit: BoxFit.contain),
                 ),
-              ),
-              const SizedBox(height: 12),
-              BgRemovalStatusBanner(status: _bgStatus),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Name', border: OutlineInputBorder()),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter a name' : null,
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
-                items: _categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-                onChanged: (v) => setState(() => _selectedCategory = v),
-                validator: (v) => v == null ? 'Select a category' : null,
-              ),
-              const SizedBox(height: 30),
-              ElevatedButton(
-                onPressed: _isUploading ? null : _uploadAndSave,
-                child: _isUploading ? const CircularProgressIndicator() : const Text('Add Clothing'),
-              ),
-              TextButton(
-                onPressed: () => context.go('/catalog'),
-                child: const Text('Cancel'),
-              ),
-            ],
+                const SizedBox(height: 12),
+                BgRemovalStatusBanner(status: _bgStatus),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Name',
+                    border: _inputBorder,
+                    enabledBorder: _inputBorder,
+                    focusedBorder: _inputBorder,
+                  ),
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter a name' : null,
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(
+                    labelText: 'Category',
+                    border: _inputBorder,
+                    enabledBorder: _inputBorder,
+                    focusedBorder: _inputBorder,
+                  ),
+                  items: _categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                  onChanged: (v) => setState(() => _selectedCategory = v),
+                  validator: (v) => v == null ? 'Select a category' : null,
+                ),
+                const SizedBox(height: 32),
+                PrimaryButton(
+                  label: 'Add Clothing',
+                  isLoading: _isUploading,
+                  onPressed: _isUploading ? null : _uploadAndSave,
+                ),
+                const SizedBox(height: 12),
+                Center(
+                  child: TextButton(
+                    onPressed: () => context.go('/catalog'),
+                    child: const Text('Cancel'),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

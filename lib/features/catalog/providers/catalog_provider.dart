@@ -1,13 +1,20 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:weardo_outfit_builder/models/clothing_model.dart';
 
 class CatalogProvider extends ChangeNotifier {
   List<ClothingItem> _allClothes = [];
-  bool _isLoading = false;
+  bool _isLoading = true;
+  bool _isMutating = false;
+  bool _hasError = false;
+  StreamSubscription? _streamSub;
+  StreamSubscription? _authSub;
 
   List<ClothingItem> get allClothes => _allClothes;
   bool get isLoading => _isLoading;
+  bool get isMutating => _isMutating;
+  bool get hasError => _hasError;
 
   List<ClothingItem> getHeadwear() {
     return _allClothes.where((c) => c.category == 'Headwear').toList();
@@ -29,7 +36,6 @@ class CatalogProvider extends ChangeNotifier {
     return _allClothes.where((c) => c.category == 'Footwear').toList();
   }
 
-  // Old names mapped to new categories so builder/profile still work
   List<ClothingItem> getOuter() => getOuterTops();
   List<ClothingItem> getInner() => getInnerTops();
   List<ClothingItem> getPants() => getBottoms();
@@ -41,52 +47,104 @@ class CatalogProvider extends ChangeNotifier {
 
   int getItemCount() => _allClothes.length;
 
-  Future<void> fetchUserClothes() async {
+  CatalogProvider() {
+    _init();
+  }
+
+  void _init() {
+    _setupStream();
+    _authSub = Supabase.instance.client.auth.onAuthStateChange.listen((event) {
+      if (event.session != null) {
+        _allClothes = [];
+        _isLoading = true;
+        notifyListeners();
+        _setupStream();
+      } else {
+        _streamSub?.cancel();
+        _allClothes = [];
+        _isLoading = false;
+        notifyListeners();
+      }
+    });
+  }
+
+  void _setupStream() {
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) return;
 
-    _isLoading = true;
-    notifyListeners();
-
-    final data = await Supabase.instance.client
+    _streamSub?.cancel();
+    _hasError = false;
+    _streamSub = Supabase.instance.client
         .from('clothes')
-        .select('*')
+        .stream(primaryKey: ['id'])
         .eq('user_id', userId)
-        .order('created_at', ascending: false);
+        .order('created_at', ascending: false)
+        .listen((data) {
+          _allClothes = (data as List)
+              .map((row) => ClothingItem.fromMap(row['id'], row))
+              .toList();
+          _isLoading = false;
+          _hasError = false;
+          notifyListeners();
+        }, onError: (_) {
+          _isLoading = false;
+          _hasError = true;
+          notifyListeners();
+        });
+  }
 
-    _allClothes = (data as List)
-        .map((row) => ClothingItem.fromMap(row['id'], row))
-        .toList();
-
-    _isLoading = false;
-    notifyListeners();
+  void retry() {
+    if (!_hasError) return;
+    _setupStream();
   }
 
   Future<void> addClothingItem(ClothingItem item) async {
-    await Supabase.instance.client
-        .from('clothes')
-        .insert(item.toMap());
-    await fetchUserClothes();
+    _isMutating = true;
+    notifyListeners();
+    try {
+      await Supabase.instance.client.from('clothes').insert(item.toMap());
+    } finally {
+      _isMutating = false;
+      notifyListeners();
+    }
   }
 
   Future<void> removeClothingItem(String id) async {
-    await Supabase.instance.client
-        .from('clothes')
-        .delete()
-        .eq('id', id);
-    await fetchUserClothes();
+    _isMutating = true;
+    notifyListeners();
+    try {
+      await Supabase.instance.client.from('clothes').delete().eq('id', id);
+    } finally {
+      _isMutating = false;
+      notifyListeners();
+    }
   }
 
   Future<void> toggleFavoriteItem(String id) async {
     final item = _allClothes.firstWhere((c) => c.id == id);
     final newValue = !item.isFavorited;
-    await Supabase.instance.client
-        .from('clothes')
-        .update({'is_favorited': newValue})
-        .eq('id', id);
     _allClothes = _allClothes.map((c) {
       return c.id == id ? c.copyWith(isFavorited: newValue) : c;
     }).toList();
     notifyListeners();
+
+    try {
+      await Supabase.instance.client
+          .from('clothes')
+          .update({'is_favorited': newValue})
+          .eq('id', id);
+    } catch (_) {
+      _allClothes = _allClothes.map((c) {
+        return c.id == id ? c.copyWith(isFavorited: !newValue) : c;
+      }).toList();
+      notifyListeners();
+    }
+  }
+
+  @override
+  void dispose() {
+    _streamSub?.cancel();
+    _authSub?.cancel();
+    super.dispose();
   }
 }

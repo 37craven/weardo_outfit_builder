@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:weardo_outfit_builder/features/auth/providers/auth_provider.dart';
 import 'package:weardo_outfit_builder/features/catalog/providers/catalog_provider.dart';
 import 'package:weardo_outfit_builder/features/outfit_builder/providers/saved_outfits_provider.dart';
+import 'package:weardo_outfit_builder/features/outfit_builder/providers/builder_provider.dart';
 import 'package:weardo_outfit_builder/features/auth/screens/login_screen.dart';
 import 'package:weardo_outfit_builder/features/auth/screens/register_screen.dart';
 import 'package:weardo_outfit_builder/features/catalog/screens/catalog_screen.dart';
@@ -16,23 +18,70 @@ import 'package:weardo_outfit_builder/widgets/nav_bar.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load();
   await Supabase.initialize(
-    url: 'https://dhmtnjwtqqcrecqmxpfc.supabase.co',
-    anonKey: 'sb_publishable_a2rTSMLcLOTnfb6opH-azQ_dTkrmq2Y',
+    url: dotenv.get('SUPABASE_URL'),
+    anonKey: dotenv.get('SUPABASE_ANON_KEY'),
   );
   runApp(WeardoApp());
 }
 
-class WeardoApp extends StatelessWidget {
-  WeardoApp({super.key});
+class WeardoApp extends StatefulWidget {
+  const WeardoApp({super.key});
+
+  @override
+  State<WeardoApp> createState() => _WeardoAppState();
+}
+
+class _WeardoAppState extends State<WeardoApp> {
+  late final AuthProvider _authProvider;
+  late final GoRouter _router;
+
+  @override
+  void initState() {
+    super.initState();
+    _authProvider = AuthProvider();
+    _router = GoRouter(
+      initialLocation: '/login',
+      refreshListenable: _authProvider,
+      redirect: (context, state) {
+        final isLoggedIn = _authProvider.currentUser != null;
+        final isLoginRoute = state.matchedLocation == '/login' || state.matchedLocation == '/register';
+
+        if (isLoggedIn && isLoginRoute) return '/catalog';
+        if (!isLoggedIn && !isLoginRoute) return '/login';
+        return null;
+      },
+      routes: [
+        GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+        GoRoute(path: '/register', builder: (context, state) => const RegisterScreen()),
+        StatefulShellRoute.indexedStack(
+          builder: (context, state, navigationShell) => MainShell(navigationShell: navigationShell),
+          branches: [
+            StatefulShellBranch(
+              routes: [GoRoute(path: '/catalog', builder: (context, state) => const CatalogScreen())],
+            ),
+            StatefulShellBranch(
+              routes: [GoRoute(path: '/builder', builder: (context, state) => const BuilderScreen())],
+            ),
+            StatefulShellBranch(
+              routes: [GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen())],
+            ),
+          ],
+        ),
+        GoRoute(path: '/add-clothes', builder: (context, state) => const AddClothesScreen()),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider.value(value: _authProvider),
         ChangeNotifierProvider(create: (_) => CatalogProvider()),
         ChangeNotifierProvider(create: (_) => SavedOutfitsProvider()),
+        ChangeNotifierProvider(create: (_) => BuilderProvider()),
       ],
       child: MaterialApp.router(
         title: 'WEARDO',
@@ -56,36 +105,4 @@ class WeardoApp extends StatelessWidget {
       ),
     );
   }
-
-  final GoRouter _router = GoRouter(
-    initialLocation: '/login',
-    redirect: (context, state) {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final isLoggedIn = authProvider.currentUser != null;
-      final isLoginRoute = state.matchedLocation == '/login' || state.matchedLocation == '/register';
-
-      if (isLoggedIn && isLoginRoute) return '/catalog';
-      if (!isLoggedIn && !isLoginRoute) return '/login';
-      return null;
-    },
-    routes: [
-      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
-      GoRoute(path: '/register', builder: (context, state) => const RegisterScreen()),
-      StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) => MainShell(navigationShell: navigationShell),
-        branches: [
-          StatefulShellBranch(
-            routes: [GoRoute(path: '/catalog', builder: (context, state) => const CatalogScreen())],
-          ),
-          StatefulShellBranch(
-            routes: [GoRoute(path: '/builder', builder: (context, state) => const BuilderScreen())],
-          ),
-          StatefulShellBranch(
-            routes: [GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen())],
-          ),
-        ],
-      ),
-      GoRoute(path: '/add-clothes', builder: (context, state) => const AddClothesScreen()),
-    ],
-  );
 }

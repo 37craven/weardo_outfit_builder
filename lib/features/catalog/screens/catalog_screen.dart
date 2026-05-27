@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:weardo_outfit_builder/features/catalog/providers/catalog_provider.dart';
 import 'package:weardo_outfit_builder/models/clothing_model.dart';
 import 'package:weardo_outfit_builder/widgets/floating_action_button.dart';
+import 'package:weardo_outfit_builder/features/catalog/widgets/catalog_item_card.dart';
+import 'package:weardo_outfit_builder/features/catalog/widgets/category_filter_bar.dart';
 import 'package:go_router/go_router.dart';
 
 class CatalogScreen extends StatefulWidget {
@@ -22,9 +24,6 @@ class _CatalogScreenState extends State<CatalogScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<CatalogProvider>(context, listen: false).fetchUserClothes();
-    });
     _searchController.addListener(() {
       setState(() => _searchQuery = _searchController.text.trim().toLowerCase());
     });
@@ -65,44 +64,10 @@ class _CatalogScreenState extends State<CatalogScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            Container(
-              decoration: const BoxDecoration(
-                border: Border(
-                  left: BorderSide(color: Colors.black, width: 1),
-                  right: BorderSide(color: Colors.black, width: 1),
-                  top: BorderSide(color: Colors.black, width: 1),
-                  bottom: BorderSide(color: Colors.black, width: 1),
-                ),
-              ),
-              child: SizedBox(
-                height: 48,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _categories.length,
-                  separatorBuilder: (_, __) => Container(width: 1, color: Colors.black),
-                  itemBuilder: (context, index) {
-                    final category = _categories[index];
-                    final selected = _selectedCategory == category;
-                    return GestureDetector(
-                      onTap: () => setState(() => _selectedCategory = category),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: selected ? Colors.black : Colors.white,
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        alignment: Alignment.center,
-                        child: Text(
-                          category == 'all' ? 'All' : category[0].toUpperCase() + category.substring(1),
-                          style: TextStyle(
-                            color: selected ? Colors.white : Colors.black,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
+            CategoryFilterBar(
+              categories: _categories,
+              selectedCategory: _selectedCategory,
+              onCategoryChanged: (cat) => setState(() => _selectedCategory = cat),
             ),
             const SizedBox(height: 8),
             Expanded(child: Consumer<CatalogProvider>(
@@ -114,6 +79,24 @@ class _CatalogScreenState extends State<CatalogScreen> {
                 }
 
                 if (items.isEmpty) {
+                  if (clothesProvider.hasError) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.cloud_off, size: 60, color: Colors.red),
+                          const SizedBox(height: 12),
+                          const Text('Could not load items'),
+                          const SizedBox(height: 16),
+                          TextButton.icon(
+                            onPressed: clothesProvider.retry,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -126,18 +109,37 @@ class _CatalogScreenState extends State<CatalogScreen> {
                   );
                 }
 
-                return GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 0.8,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
-                  ),
-                  itemCount: items.length,
-                  itemBuilder: (ctx, index) {
-                    return _CatalogItemCard(item: items[index]);
-                  },
-                );
+                if (clothesProvider.hasError) {
+                  return Column(
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        margin: const EdgeInsets.only(bottom: 8),
+                        decoration: const BoxDecoration(color: Colors.redAccent),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.cloud_off, color: Colors.white, size: 18),
+                            const SizedBox(width: 8),
+                            const Expanded(
+                              child: Text('Connection lost', style: TextStyle(color: Colors.white)),
+                            ),
+                            TextButton(
+                              onPressed: clothesProvider.retry,
+                              style: TextButton.styleFrom(foregroundColor: Colors.white),
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: _buildGrid(items),
+                      ),
+                    ],
+                  );
+                }
+
+                return _buildGrid(items);
               },
             )),
           ],
@@ -153,6 +155,25 @@ class _CatalogScreenState extends State<CatalogScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildGrid(List<ClothingItem> items) {
+    final availableWidth = MediaQuery.of(context).size.width - 48;
+    final crossAxisCount = (availableWidth / 180).floor().clamp(2, 4);
+
+    return GridView.builder(
+      padding: const EdgeInsets.only(bottom: 80),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        childAspectRatio: 0.8,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+      ),
+      itemCount: items.length,
+      itemBuilder: (ctx, index) {
+        return CatalogItemCard(item: items[index]);
+      },
     );
   }
 
@@ -175,185 +196,5 @@ class _CatalogScreenState extends State<CatalogScreen> {
     }
 
     return items;
-  }
-}
-
-class _CatalogItemCard extends StatelessWidget {
-  final ClothingItem item;
-
-  const _CatalogItemCard({required this.item});
-
-  void _showDetails(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.white,
-        shape: const RoundedRectangleBorder(),
-        child: Stack(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Center(
-                    child: SizedBox(
-                      height: 200,
-                      width: 200,
-                      child: Image.network(
-                        item.imageUrl,
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, _, _) => const Icon(Icons.broken_image, size: 50),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Center(child: Text(item.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
-                  const SizedBox(height: 4),
-                  Center(child: Text(item.category, style: TextStyle(fontSize: 12, color: Colors.grey[500]))),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            Provider.of<CatalogProvider>(ctx, listen: false).toggleFavoriteItem(item.id);
-                            Navigator.pop(ctx);
-                          },
-                          child: Container(
-                            height: 44,
-                            decoration: const BoxDecoration(
-                              border: Border(
-                                top: BorderSide(color: Colors.black, width: 1),
-                                bottom: BorderSide(color: Colors.black, width: 1),
-                                left: BorderSide(color: Colors.black, width: 1),
-                                right: BorderSide(color: Colors.black, width: 1),
-                              ),
-                            ),
-                            child: Center(
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    item.isFavorited ? Icons.star : Icons.star_border,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(item.isFavorited ? 'Favorited' : 'Favorite'),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            Navigator.pop(ctx);
-                            Provider.of<CatalogProvider>(context, listen: false).removeClothingItem(item.id);
-                          },
-                          child: Container(
-                            height: 44,
-                            decoration: const BoxDecoration(
-                              border: Border(
-                                top: BorderSide(color: Colors.black, width: 1),
-                                bottom: BorderSide(color: Colors.black, width: 1),
-                                left: BorderSide(color: Colors.black, width: 1),
-                                right: BorderSide(color: Colors.black, width: 1),
-                              ),
-                            ),
-                            child: const Center(
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.delete_outline, size: 20),
-                                  SizedBox(width: 6),
-                                  Text('Remove'),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            Positioned(
-              right: 8,
-              top: 8,
-              child: GestureDetector(
-                onTap: () => Navigator.pop(ctx),
-                child: const SizedBox(
-                  width: 32,
-                  height: 32,
-                  child: Center(child: Icon(Icons.close, size: 18)),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => _showDetails(context),
-      child: Column(
-        spacing: 4,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: Container(
-              decoration: const BoxDecoration(
-                border: Border(
-                  top: BorderSide(color: Colors.black, width: 1),
-                  bottom: BorderSide(color: Colors.black, width: 1),
-                  left: BorderSide(color: Colors.black, width: 1),
-                  right: BorderSide(color: Colors.black, width: 1),
-                ),
-              ),
-              child: ClipRect(
-                child: Image.network(
-                  item.imageUrl,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, _, _) => const Icon(Icons.broken_image, size: 50),
-                ),
-              ),
-            ),
-          ),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(item.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
-                    Text(item.category, style: TextStyle(fontSize: 10, color: Colors.grey[500])),
-                  ],
-                ),
-              ),
-              IconButton(
-                icon: Icon(
-                  item.isFavorited ? Icons.star : Icons.star_border,
-                  color: item.isFavorited ? Colors.black : null,
-                  size: 24,
-                ),
-                onPressed: () {
-                  Provider.of<CatalogProvider>(context, listen: false).toggleFavoriteItem(item.id);
-                },
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
   }
 }

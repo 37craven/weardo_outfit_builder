@@ -1,8 +1,7 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:weardo_outfit_builder/features/auth/providers/auth_provider.dart';
+import 'package:weardo_outfit_builder/features/auth/widgets/wordmark_logo.dart';
 import 'package:weardo_outfit_builder/widgets/button.dart';
 import 'package:go_router/go_router.dart';
 
@@ -17,6 +16,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _usernameOrEmailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -28,32 +28,25 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isSmall = screenHeight < 650;
 
     void showError(String msg) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
 
     return Scaffold(
-      body: Center(
-        child: Container(
-          constraints: const BoxConstraints(
-            minWidth: 120,
-            maxWidth: 480,
-          ),
-          height: double.infinity,
+      body: SafeArea(
+        child: Center(
           child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 128, 24, 48),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-
-              Column(
-                spacing: 128,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: Column(
                 children: [
-                  const _WordmarkLogo(),
-
+                  SizedBox(height: isSmall ? 24 : screenHeight * 0.1),
+                  const WordmarkLogo(),
+                  SizedBox(height: isSmall ? 32 : screenHeight * 0.06),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
@@ -80,120 +73,39 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ],
                   ),
+                  const Spacer(),
+                  Column(
+                    children: [
+                      PrimaryButton(
+                        label: 'Login',
+                        isLoading: _isLoading,
+                        onPressed: () async {
+                          setState(() => _isLoading = true);
+                          final error = await authProvider.login(
+                            _usernameOrEmailController.text.trim(),
+                            _passwordController.text.trim(),
+                          );
+                          if (error == null) {
+                            if (context.mounted) context.go('/catalog');
+                            return;
+                          }
+                          setState(() => _isLoading = false);
+                          showError(error);
+                        },
+                      ),
+                      TextButton(
+                        onPressed: () => context.go('/register'),
+                        child: const Text("Don't have an account? Register"),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: isSmall ? 16 : 24),
                 ],
               ),
-
-
-              Column(
-                children: [
-                  PrimaryButton(
-                    label: 'Login',
-                    onPressed: () async {
-                      String? error = await authProvider.login(
-                        _usernameOrEmailController.text.trim(),
-                        _passwordController.text.trim(),
-                      );
-                      if (error == null) {
-                        if (context.mounted) context.go('/catalog');
-                      } else {
-                        showError(error);
-                      }
-                    },
-                  ),
-                  TextButton(
-                    onPressed: () => context.go('/register'),
-                    child: const Text("Don't have an account? Register"),
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
         ),
       ),
-      ),
-    );
-  }
-}
-
-class _WordmarkLogo extends StatefulWidget {
-  const _WordmarkLogo();
-
-  @override
-  State<_WordmarkLogo> createState() => _WordmarkLogoState();
-}
-
-class _WordmarkLogoState extends State<_WordmarkLogo> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  double _flickerOpacity = 1.0;
-  double _snapAngle = 0.0;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 8),
-    )..repeat();
-
-    _scheduleFlicker();
-    _scheduleSnap();
-  }
-
-  void _scheduleFlicker() {
-    Future.delayed(Duration(milliseconds: 200 + math.Random().nextInt(2800)), () {
-      if (!mounted) return;
-      setState(() {
-        _flickerOpacity = math.Random().nextDouble() * 0.4;
-      });
-      Future.delayed(Duration(milliseconds: 40 + math.Random().nextInt(120)), () {
-        if (!mounted) return;
-        setState(() => _flickerOpacity = 1.0);
-        _scheduleFlicker();
-      });
-    });
-  }
-
-  void _scheduleSnap() {
-    Future.delayed(Duration(milliseconds: 2000 + math.Random().nextInt(4000)), () {
-      if (!mounted) return;
-      setState(() {
-        _snapAngle = (math.Random().nextDouble() - 0.5) * math.pi;
-      });
-      _scheduleSnap();
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        final angle = _controller.value * 2 * math.pi;
-        final wobbleX = math.sin(angle * 0.7) * 0.15;
-        final wobbleZ = math.cos(angle * 0.5) * 0.05;
-
-        return Opacity(
-          opacity: _flickerOpacity,
-          child: Transform(
-            alignment: Alignment.center,
-            transform: Matrix4.identity()
-              ..setEntry(3, 2, 0.001)
-              ..rotateY(angle + _snapAngle)
-              ..rotateX(wobbleX)
-              ..rotateZ(wobbleZ),
-            child: SvgPicture.asset(
-              'assets/images/weardo_wordmark_logo.svg',
-              height: 48,
-            ),
-          ),
-        );
-      },
     );
   }
 }

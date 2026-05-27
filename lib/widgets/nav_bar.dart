@@ -9,44 +9,61 @@ class MainShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tabCount = 3;
+    final bottomPad = MediaQuery.of(context).padding.bottom;
+
     return Scaffold(
       body: navigationShell,
       bottomNavigationBar: Container(
-        height: 71,
+        height: 71 + bottomPad,
         decoration: const BoxDecoration(
           color: Colors.white,
           border: Border(
             top: BorderSide(color: Colors.black, width: 1),
             left: BorderSide(color: Colors.black, width: 1),
             right: BorderSide(color: Colors.black, width: 1),
-            bottom: BorderSide(color: Colors.black, width: 1),
           ),
         ),
         child: Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
-          child: Row(
-            children: [
-              _NavItem(
-                icon: Icons.book,
-                label: 'Catalog',
-                selected: navigationShell.currentIndex == 0,
-                onTap: () => navigationShell.goBranch(0),
-                showRightBorder: true,
-              ),
-              _NavItem(
-                icon: Icons.checkroom,
-                label: 'Builder',
-                selected: navigationShell.currentIndex == 1,
-                onTap: () => navigationShell.goBranch(1),
-                showRightBorder: true,
-              ),
-              _NavItem(
-                icon: Icons.person,
-                label: 'Profile',
-                selected: navigationShell.currentIndex == 2,
-                onTap: () => navigationShell.goBranch(2),
-              ),
-            ],
+          padding: EdgeInsets.only(bottom: bottomPad),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final tabWidth = constraints.maxWidth / tabCount;
+
+              return Stack(
+                children: [
+                  AnimatedPositioned(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOutCubic,
+                    left: navigationShell.currentIndex * tabWidth,
+                    top: 0,
+                    width: tabWidth,
+                    height: 71,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black,
+                        border: navigationShell.currentIndex < tabCount - 1
+                            ? const Border(
+                                right: BorderSide(color: Colors.white, width: 1),
+                              )
+                            : null,
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: List.generate(tabCount, (i) {
+                      return _NavItem(
+                        icon: [Icons.book, Icons.checkroom, Icons.person][i],
+                        label: ['Catalog', 'Builder', 'Profile'][i],
+                        selected: navigationShell.currentIndex == i,
+                        onTap: () => navigationShell.goBranch(i),
+                        showRightBorder: i < tabCount - 1,
+                      );
+                    }),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -76,7 +93,6 @@ class _NavItem extends StatelessWidget {
         onTap: onTap,
         child: Container(
           decoration: BoxDecoration(
-            color: selected ? Colors.black : Colors.white,
             border: showRightBorder
                 ? const Border(right: BorderSide(color: Colors.black, width: 1))
                 : null,

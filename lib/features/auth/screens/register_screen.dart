@@ -19,6 +19,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _confirmController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -32,42 +33,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isSmall = screenHeight < 650;
 
     void showError(String msg) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
 
     return Scaffold(
-      body: Center(
-        child: Container(
-          constraints: const BoxConstraints(
-            minWidth: 120,
-            maxWidth: 480,
-          ),
-          height: double.infinity,
+      body: SafeArea(
+        child: Center(
           child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 196, 24, 48),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-
-              Column(
-                spacing: 48,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: Column(
                 children: [
+                  SizedBox(height: isSmall ? 24 : screenHeight * 0.06),
                   SvgPicture.asset(
                     'assets/images/weardo_wordmark_logo.svg',
                     height: 48,
                   ),
-
+                  SizedBox(height: isSmall ? 24 : screenHeight * 0.04),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       TextField(controller: _usernameController, decoration: const InputDecoration(labelText: 'Username')),
                       const SizedBox(height: 20),
                       TextField(controller: _emailController, decoration: const InputDecoration(labelText: 'Email')),
-
                       const SizedBox(height: 20),
                       TextField(
                         controller: _passwordController,
@@ -98,40 +91,43 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ],
                   ),
+                  const Spacer(),
+                  Column(
+                    children: [
+                      PrimaryButton(
+                        label: 'Create Account',
+                        isLoading: _isLoading,
+                        onPressed: () async {
+                          if (_passwordController.text != _confirmController.text) {
+                            showError('Passwords do not match');
+                            return;
+                          }
+                          setState(() => _isLoading = true);
+                          final error = await authProvider.register(
+                            _emailController.text.trim(),
+                            _usernameController.text.trim(),
+                            _passwordController.text.trim(),
+                          );
+                          if (error == null) {
+                            if (context.mounted) context.go('/catalog');
+                            return;
+                          }
+                          setState(() => _isLoading = false);
+                          showError(error);
+                        },
+                      ),
+                      TextButton(
+                        onPressed: () => context.go('/login'),
+                        child: const Text('Back to Login'),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: isSmall ? 16 : 24),
                 ],
               ),
-
-              Column(
-                children: [
-                  PrimaryButton(
-                    label: 'Create Account',
-                    onPressed: () async {
-                      if (_passwordController.text != _confirmController.text) {
-                        showError('Passwords do not match');
-                        return;
-                      }
-                      String? error = await authProvider.register(
-                        _emailController.text.trim(),
-                        _usernameController.text.trim(),
-                        _passwordController.text.trim(),
-                      );
-                      if (error == null) {
-                        if (context.mounted) context.go('/catalog');
-                      } else {
-                        showError(error);
-                      }
-                    },
-                  ),
-                  TextButton(
-                    onPressed: () => context.go('/login'),
-                    child: const Text('Back to Login'),
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }

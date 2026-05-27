@@ -16,14 +16,15 @@ class BgRemovalStatusBanner extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: _color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
           border: Border.all(color: _color.withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
             _icon,
             const SizedBox(width: 8),
-            Text(_text, style: TextStyle(color: _color, fontSize: 13)),
+            Expanded(
+              child: Text(_text, style: TextStyle(color: _color, fontSize: 13)),
+            ),
           ],
         ),
       ),
