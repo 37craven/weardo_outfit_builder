@@ -66,11 +66,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 5),
-                      TextButton(
-                        onPressed: () =>
-                            showError('Reset link would be sent (feature coming)'),
-                        child: const Text('Forgot Password?'),
-                      ),
                     ],
                   ),
                   const Spacer(),

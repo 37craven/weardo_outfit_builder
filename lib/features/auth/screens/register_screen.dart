@@ -22,6 +22,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscureConfirm = true;
   bool _isLoading = false;
 
+  String? _validatePassword(String? value) {
+    if (value == null || value.isEmpty) return 'Enter a password';
+    if (value.length < 8) return 'At least 8 characters';
+    if (!RegExp(r'(?=.*[A-Z])').hasMatch(value)) return 'Needs 1 uppercase letter';
+    if (!RegExp(r'(?=.*[a-z0-9])').hasMatch(value)) return 'Needs 1 lowercase letter or digit';
+    if (!RegExp(r'(?=.*[!@#$%^&*(),.?":{}|<>])').hasMatch(value)) return 'Needs 1 symbol';
+    return null;
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -75,7 +84,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         const SizedBox(height: 20),
                         TextField(controller: _emailController, decoration: const InputDecoration(labelText: 'Email')),
                         const SizedBox(height: 20),
-                        TextField(
+                        TextFormField(
                           controller: _passwordController,
                           obscureText: _obscurePassword,
                           decoration: InputDecoration(
@@ -87,9 +96,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                             ),
                           ),
+                          validator: _validatePassword,
                         ),
                         const SizedBox(height: 20),
-                        TextField(
+                        TextFormField(
                           controller: _confirmController,
                           obscureText: _obscureConfirm,
                           decoration: InputDecoration(
@@ -101,6 +111,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
                             ),
                           ),
+                          validator: (v) {
+                            if (v != _passwordController.text) return 'Passwords do not match';
+                            return null;
+                          },
                         ),
                       ],
                     ),
@@ -113,8 +127,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         isLoading: _isLoading,
                         onPressed: () async {
                           if (!_formKey.currentState!.validate()) return;
-                          if (_passwordController.text != _confirmController.text) {
-                            showError('Passwords do not match');
+                          final passwordError = _validatePassword(_passwordController.text);
+                          if (passwordError != null) {
+                            showError(passwordError);
                             return;
                           }
                           setState(() => _isLoading = true);
